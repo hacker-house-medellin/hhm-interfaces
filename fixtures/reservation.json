@@ -1,0 +1,12 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "title": "Example Reservation",
+  "summary": "Operations software for an entrepreneur coliving and coworking community.",
+  "status": "requested",
+  "created_at": "2026-08-04T12:00:00Z",
+  "updated_at": "2026-08-04T12:00:00Z",
+  "member_name": "Ada Lovelace",
+  "space_name": "Room 3 / Desk B",
+  "starts_at": "2026-08-10T14:00:00Z",
+  "ends_at": "2026-08-17T14:00:00Z"
+}

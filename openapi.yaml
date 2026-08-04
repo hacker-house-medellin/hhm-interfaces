@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: Hacker House Medellín API
+  version: 0.1.0
+  description: "Run rooms, desks, member stays, community events, access workflows, and day-to-day operations for a hacker house in Medell\u00edn, Colombia."
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: service is alive
+  /api/v1/reservations:
+    get:
+      operationId: listReservations
+      responses:
+        '200':
+          description: bounded list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+    post:
+      operationId: createReservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservation'
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '422':
+          description: validation failure
+  /api/v1/reservations/{id}:
+    get:
+      operationId: getReservation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '404': { description: not found }
+  /ws:
+    get:
+      operationId: websocket
+      responses:
+        '101': { description: WebSocket upgrade }
+components:
+  schemas:
+    Reservation:
+      $ref: './schemas/reservation.json'
+    CreateReservation:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 256 }
+        summary: { type: string, maxLength: 4000 }
