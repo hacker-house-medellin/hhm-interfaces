@@ -1,0 +1,16 @@
+[package]
+org = "hacker-house-medellin"
+name = "hhm-interfaces"
+version = "0.1.0"
+description = "Shared interfaces and schemas for Hacker House Medellín"
+license = "MIT"
+language = "polyglot"
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/hacker-house-medellin/hhm-interfaces"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+exclude = [".env", ".env.*", "node_modules/**", "target/**", "dist/**", "*.log"]
