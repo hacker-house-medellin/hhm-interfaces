@@ -178,6 +178,11 @@ impl PeerHandshakeResponse {
 
         match self.decision {
             PeerDecision::Accepted => {
+                if self.selected_capabilities.is_empty() {
+                    return Err(ValidationError(
+                        "accepted handshake requires a selected capability".into(),
+                    ));
+                }
                 if self.rejection_code.is_some() {
                     return Err(ValidationError(
                         "accepted handshake must not include rejection_code".into(),
@@ -469,6 +474,9 @@ mod tests {
         let mut response = accepted_handshake(now);
         assert!(response.validate_shape(now).is_ok());
         response.device_attestation = None;
+        assert!(response.validate_shape(now).is_err());
+        response.device_attestation = Some("a".repeat(64));
+        response.selected_capabilities.clear();
         assert!(response.validate_shape(now).is_err());
     }
 

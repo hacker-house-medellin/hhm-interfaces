@@ -140,6 +140,9 @@
               "device_attestation",
               "transcript_signature"
             ],
+            "properties": {
+              "selected_capabilities": { "minItems": 1 }
+            },
             "not": { "required": ["rejection_code"] }
           },
           "else": {
