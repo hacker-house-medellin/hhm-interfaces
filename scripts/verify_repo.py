@@ -18,12 +18,44 @@ def main() -> int:
         "AGENTS.md",
         "project.json",
         "docs/architecture.md",
+        "docs/mobile-presence-boundary.md",
+        "schemas/visitor-access.json",
         ".zpkg.toml",
         *metadata.get("required_paths", []),
     ]
     missing = [path for path in required if not (ROOT / path).exists()]
     if missing:
         raise SystemExit(f"missing required paths: {missing}")
+
+    openapi = json.loads((ROOT / "openapi/openapi.json").read_text(encoding="utf-8"))
+    required_visitor_paths = {
+        "/v1/visitor-qr/{action}",
+        "/v1/visits/check-in",
+        "/v1/visits/check-out",
+    }
+    missing_visitor_paths = required_visitor_paths - set(openapi.get("paths", {}))
+    if missing_visitor_paths:
+        raise SystemExit(f"missing visitor OpenAPI paths: {sorted(missing_visitor_paths)}")
+
+    visitor_contract = json.loads(
+        (ROOT / "schemas/visitor-access.json").read_text(encoding="utf-8")
+    )
+    required_visitor_definitions = {
+        "IssueQrRequest",
+        "IssuedQr",
+        "CheckInRequest",
+        "CheckInReceipt",
+        "CheckOutRequest",
+        "CheckOutReceipt",
+        "ApiError",
+    }
+    missing_visitor_definitions = required_visitor_definitions - set(
+        visitor_contract.get("$defs", {})
+    )
+    if missing_visitor_definitions:
+        raise SystemExit(
+            f"missing visitor schema definitions: {sorted(missing_visitor_definitions)}"
+        )
 
     for path in ROOT.rglob("*"):
         if not path.is_file() or ".git" in path.parts or path.stat().st_size > 1_000_000:

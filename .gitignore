@@ -2,6 +2,8 @@
 .env.*
 !.env.example
 target/
+Cargo.lock
+__pycache__/
 node_modules/
 dist/
 .astro/
