@@ -10,6 +10,8 @@ The visitor contract deliberately contains no camera, audio, biometric, transcri
 
 The native resident-app and automatic-presence threat model is documented in [`docs/mobile-presence-boundary.md`](docs/mobile-presence-boundary.md). Bluetooth or location alone is never accepted as proof of a doorway crossing.
 
+Authenticated, consented peer sessions over Bluetooth or another nearby transport are defined by [`schemas/peer-session.json`](schemas/peer-session.json), [`fixtures/peer-session.json`](fixtures/peer-session.json), and [`docs/p2p-bluetooth-boundary.md`](docs/p2p-bluetooth-boundary.md). BLE discovery, signal strength, OS pairing, and remembered devices never establish trust. The v1 contract requires a Shared Auth–bound device attestation, an authenticated ephemeral-key transcript, replay/expiry checks, allowlisted encrypted payload types, bounded envelopes, and signed anti-rollback update metadata. Peers cannot authorize users, unlock doors, transmit credentials, or cause peer-supplied code to execute.
+
 ```bash
 python3 scripts/verify_repo.py
 ```

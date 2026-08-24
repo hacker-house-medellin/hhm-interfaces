@@ -19,6 +19,9 @@ def main() -> int:
         "project.json",
         "docs/architecture.md",
         "docs/mobile-presence-boundary.md",
+        "docs/p2p-bluetooth-boundary.md",
+        "fixtures/peer-session.json",
+        "schemas/peer-session.json",
         "schemas/visitor-access.json",
         ".zpkg.toml",
         *metadata.get("required_paths", []),
@@ -55,6 +58,39 @@ def main() -> int:
     if missing_visitor_definitions:
         raise SystemExit(
             f"missing visitor schema definitions: {sorted(missing_visitor_definitions)}"
+        )
+
+    peer_contract = json.loads(
+        (ROOT / "schemas/peer-session.json").read_text(encoding="utf-8")
+    )
+    required_peer_definitions = {
+        "HandshakeRequest",
+        "HandshakeResponse",
+        "EncryptedEnvelope",
+        "SignedUpdateManifest",
+    }
+    missing_peer_definitions = required_peer_definitions - set(
+        peer_contract.get("$defs", {})
+    )
+    if missing_peer_definitions:
+        raise SystemExit(
+            f"missing peer-session schema definitions: {sorted(missing_peer_definitions)}"
+        )
+
+    peer_text = json.dumps(peer_contract, sort_keys=True)
+    required_peer_guards = {
+        '"const": "hhm.p2p.v1"',
+        '"const": "hhm.update-manifest.v1"',
+        '"maxLength": 87384',
+        '"maximum": 2147483648',
+        '"pattern": "^https://"',
+    }
+    missing_peer_guards = {
+        guard for guard in required_peer_guards if guard not in peer_text
+    }
+    if missing_peer_guards:
+        raise SystemExit(
+            f"missing peer-session safety guards: {sorted(missing_peer_guards)}"
         )
 
     for path in ROOT.rglob("*"):
