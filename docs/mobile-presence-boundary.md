@@ -1,6 +1,6 @@
 # Resident mobile presence boundary
 
-Status: contract and native application implementation required. The HHM GitHub organization does not currently contain an `hhm-flutter` or equivalent resident-app repository.
+Status: the v1 managed-doorway wire contract and resident-app repositories now exist. Native radio/attestation adapters, registered doorway hardware, backend verification, durable replay state, product authorization, and an operational privacy rollout are still required before automatic presence can be enabled.
 
 The resident app should make arrival and departure convenient, but a phone's Bluetooth proximity, geofence, or motion estimate is not proof that a person crossed a door. Radio signals can be relayed, replayed, copied, obstructed, or observed through walls; mobile operating systems may suspend background work. The server must never mark a resident present or absent from a client assertion alone.
 
@@ -23,10 +23,13 @@ When the app believes a crossing occurred, it submits the observed challenge ove
 - its registered device ID and app/protocol version;
 - the claimed direction, local observation time, and bounded signal-quality bucket;
 - the signed door challenge;
+- a separately keyed corroboration proof from a registered door controller, NFC reader, UWB source, or local-network challenger;
 - a signature from the enrolled device key over the complete request;
 - platform attestation when available.
 
 The authenticated resident identity comes from the verified session, never from a subject or email supplied in the request body. The server checks house membership, device status, challenge signature and key version, door assignment, time window, server nonce, device signature, attestation policy, exact audience, and replay cache before accepting a transition.
+
+All signatures use a registered asymmetric key and an algorithm fixed by the active server policy; a symmetric door secret is never distributed to a mobile app. Signing input is UTF-8 RFC 8785 JSON Canonicalization Scheme output prefixed by an ASCII domain separator and one NUL byte. The separators are `HHM-DOORWAY-CHALLENGE-V1`, `HHM-DOORWAY-CORROBORATION-V1`, and `HHM-DOORWAY-OBSERVATION-V1`. Challenge signing omits only `signature`; corroboration signing omits only `proof`; observation signing omits only `device_signature` and includes the complete challenge, corroboration, submission nonce, audience, policy version, and previous sequence. The corroboration digest is SHA-256 over the canonical, fully signed challenge object. Implementations reject duplicate JSON keys and non-canonical numeric or timestamp encodings before verification.
 
 A door controller or a second independent signal should confirm direction. If direction or timing is ambiguous, the server records `presence_confirmation_required` and asks the resident rather than guessing. Geofencing may suppress obviously implausible attempts, but it is not a positive access credential.
 
@@ -41,9 +44,9 @@ Only the server owns the current state and monotonic sequence number. Every acce
 
 The mobile app keeps a bounded offline outbox using Opto Sync causal envelopes. It may retry an observation, but an expired door challenge can never be made valid by offline synchronization. The server returns a stable rejection reason so the app can offer QR or manual confirmation.
 
-## Proposed interfaces
+## Interface rollout
 
-The canonical API should eventually provide:
+The canonical contract now defines `POST /v1/presence/submission-nonces` and `POST /v1/presence/observations`. A production backend must keep them unavailable until real cryptographic, authorization, and durable-state adapters are configured. The broader lifecycle should eventually provide:
 
 - `POST /v1/resident-devices/enrollment-challenges`
 - `POST /v1/resident-devices`
@@ -53,7 +56,7 @@ The canonical API should eventually provide:
 - `GET /v1/presence/current`
 - `POST /v1/presence/confirmations/{event_id}`
 
-These routes must not be implemented until the resident membership permission model, door-device trust chain, signed challenge format, platform attestation policy, replay store, and durable presence ledger are specified together. Enrollment and revocation require stronger assurance than an ordinary background refresh session.
+The contract types are safe to implement and test before hardware rollout, but no route may report an accepted transition until the resident membership permission model, registered and independently keyed door-device trust chain, platform attestation policy, one-use nonce/replay store, and durable presence ledger are configured together. Enrollment and revocation require stronger assurance than an ordinary background refresh session.
 
 ## Privacy and retention
 
@@ -73,4 +76,4 @@ The release gate includes:
 - battery and false-transition measurement inside and outside every actual doorway;
 - an incident kill switch for a door key, app version, device, house, or the entire automatic-presence feature.
 
-Until these pieces exist, the mobile clients should consume the visitor QR and HTML component contracts only for explicit user-driven flows and must not claim automatic sign-in or sign-out.
+Until these pieces exist, the mobile clients may collect and locally validate contract-shaped doorway evidence for explicit test programs, but must not mark presence locally or claim automatic sign-in or sign-out. Only an authenticated backend `accepted` decision can advance authoritative presence state.

@@ -8,7 +8,8 @@ remembered peer, and a successful BLE connection do not raise assurance.
 
 The canonical wire objects are defined in
 [`schemas/peer-session.json`](../schemas/peer-session.json) under protocol
-version `hhm.p2p.v1`.
+version `hhm.p2p.v1`. Decrypted JSON application records are separately closed
+and versioned by [`schemas/p2p-json-records.json`](../schemas/p2p-json-records.json).
 
 ## Consent and discovery
 
@@ -58,6 +59,16 @@ must enforce these ceilings before allocation or decryption:
   sequence;
 - no arbitrary content type, dynamic telemetry attribute map, or implicit file
   transfer.
+
+The v1 JSON allowlist contains only a bounded contact card, a bounded
+plain-text resident message, and a receipt. Parsers reject unknown properties,
+unsupported schema versions, non-HTTPS website fields, control characters,
+expired records, and lifetimes over ten minutes. The envelope `payload_type`
+must equal the decrypted record schema. Applications render message text as
+text, never HTML or Markdown with active links, and sharing each capability
+requires explicit session consent. Adding another JSON record requires a new
+schema, fixtures, hostile tests, product authorization, and a reviewed protocol
+revision; an open-ended JSON map is not an extension mechanism.
 
 Files use a signed manifest and explicit recipient confirmation before any
 bounded chunk transfer is enabled by a later contract. The v1 schema contains
