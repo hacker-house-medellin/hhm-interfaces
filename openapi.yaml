@@ -57,12 +57,110 @@ paths:
               schema:
                 $ref: '#/components/schemas/Reservation'
         '404': { description: not found }
+  /v1/visitor-qr/{action}:
+    post:
+      operationId: issueVisitorQr
+      description: Requires dual authentication and HHM product authorization for the verified provider, tenant, and subject tuple.
+      security:
+        - bearerAuth: []
+        - supabaseToken: []
+      parameters:
+        - in: path
+          name: action
+          required: true
+          schema:
+            type: string
+            enum: [check-in, check-out]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './schemas/visitor-access.json#/$defs/IssueQrRequest'
+      responses:
+        '200':
+          description: minute-bound QR payload issued
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/visitor-access.json#/$defs/IssuedQr'
+        '401':
+          $ref: '#/components/responses/VisitorError'
+        '403':
+          $ref: '#/components/responses/VisitorError'
+        '422':
+          $ref: '#/components/responses/VisitorError'
+        '503':
+          $ref: '#/components/responses/VisitorError'
+  /v1/visits/check-in:
+    post:
+      operationId: visitorCheckIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './schemas/visitor-access.json#/$defs/CheckInRequest'
+      responses:
+        '201':
+          description: visitor checked in; the private checkout receipt is returned once
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/visitor-access.json#/$defs/CheckInReceipt'
+        '401':
+          $ref: '#/components/responses/VisitorError'
+        '422':
+          $ref: '#/components/responses/VisitorError'
+        '429':
+          $ref: '#/components/responses/VisitorError'
+        '503':
+          $ref: '#/components/responses/VisitorError'
+  /v1/visits/check-out:
+    post:
+      operationId: visitorCheckOut
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './schemas/visitor-access.json#/$defs/CheckOutRequest'
+      responses:
+        '200':
+          description: visitor checked out and the retained display name erased
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/visitor-access.json#/$defs/CheckOutReceipt'
+        '401':
+          $ref: '#/components/responses/VisitorError'
+        '409':
+          $ref: '#/components/responses/VisitorError'
+        '422':
+          $ref: '#/components/responses/VisitorError'
+        '503':
+          $ref: '#/components/responses/VisitorError'
   /ws:
     get:
       operationId: websocket
       responses:
         '101': { description: WebSocket upgrade }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    supabaseToken:
+      type: apiKey
+      in: header
+      name: x-supabase-token
+  responses:
+    VisitorError:
+      description: stable visitor-access error
+      content:
+        application/json:
+          schema:
+            $ref: './schemas/visitor-access.json#/$defs/ApiError'
   schemas:
     Reservation:
       $ref: './schemas/reservation.json'
@@ -72,3 +170,15 @@ components:
       properties:
         title: { type: string, minLength: 1, maxLength: 256 }
         summary: { type: string, maxLength: 4000 }
+    VisitorIssueQrRequest:
+      $ref: './schemas/visitor-access.json#/$defs/IssueQrRequest'
+    VisitorIssuedQr:
+      $ref: './schemas/visitor-access.json#/$defs/IssuedQr'
+    VisitorCheckInRequest:
+      $ref: './schemas/visitor-access.json#/$defs/CheckInRequest'
+    VisitorCheckInReceipt:
+      $ref: './schemas/visitor-access.json#/$defs/CheckInReceipt'
+    VisitorCheckOutRequest:
+      $ref: './schemas/visitor-access.json#/$defs/CheckOutRequest'
+    VisitorCheckOutReceipt:
+      $ref: './schemas/visitor-access.json#/$defs/CheckOutReceipt'
