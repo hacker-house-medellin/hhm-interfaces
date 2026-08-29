@@ -7,6 +7,17 @@ use uuid::Uuid;
 pub const PEER_PROTOCOL_VERSION: &str = "hhm.p2p.v1";
 pub const PEER_UPDATE_MANIFEST_SCHEMA: &str = "hhm.update-manifest.v1";
 pub const PEER_MAX_ENCODED_CIPHERTEXT_BYTES: usize = 87_384;
+pub const DOORWAY_CHALLENGE_SCHEMA: &str = "hhm.doorway-challenge.v1";
+pub const DOORWAY_CORROBORATION_SCHEMA: &str = "hhm.doorway-corroboration.v1";
+pub const DOORWAY_OBSERVATION_SCHEMA: &str = "hhm.doorway-observation.v1";
+pub const PRESENCE_SUBMISSION_NONCE_REQUEST_SCHEMA: &str =
+    "hhm.presence-submission-nonce-request.v1";
+pub const PRESENCE_SUBMISSION_NONCE_SCHEMA: &str = "hhm.presence-submission-nonce.v1";
+pub const PRESENCE_DECISION_SCHEMA: &str = "hhm.presence-decision.v1";
+pub const PRESENCE_AUDIENCE: &str = "hhm-presence-observation";
+pub const CONTACT_CARD_SCHEMA: &str = "hhm.contact-card.v1";
+pub const RESIDENT_MESSAGE_SCHEMA: &str = "hhm.resident-message.v1";
+pub const PEER_RECEIPT_SCHEMA: &str = "hhm.receipt.v1";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -348,6 +359,446 @@ impl SignedUpdateManifest {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DoorwayDirection {
+    Entry,
+    Exit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DoorwayDirectionHint {
+    Entry,
+    Exit,
+    Ambiguous,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DoorwaySignalBucket {
+    Contact,
+    Doorway,
+    Near,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CorroborationMethod {
+    DoorController,
+    NfcTap,
+    UwbRange,
+    LocalNetworkChallenge,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DoorwayChallenge {
+    pub schema: String,
+    pub house_id: String,
+    pub door_id: String,
+    pub beacon_key_id: String,
+    pub key_version: u32,
+    pub challenge_id: Uuid,
+    pub nonce: String,
+    pub direction_hint: DoorwayDirectionHint,
+    pub issued_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub signature: String,
+}
+
+impl DoorwayChallenge {
+    /// Validates the bounded wire shape and time window, not the beacon signature.
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        if self.schema != DOORWAY_CHALLENGE_SCHEMA {
+            return Err(ValidationError(
+                "unsupported doorway challenge schema".into(),
+            ));
+        }
+        validate_identifier("house_id", &self.house_id)?;
+        validate_identifier("door_id", &self.door_id)?;
+        validate_key_id(&self.beacon_key_id)?;
+        if self.key_version == 0 || self.key_version > i32::MAX as u32 {
+            return Err(ValidationError("invalid doorway beacon key version".into()));
+        }
+        validate_base64url("doorway challenge nonce", &self.nonce, 43, 86)?;
+        validate_base64url("doorway challenge signature", &self.signature, 64, 512)?;
+        if self.issued_at > now + chrono::Duration::seconds(5)
+            || self.expires_at <= now
+            || self.expires_at <= self.issued_at
+        {
+            return Err(ValidationError(
+                "doorway challenge timestamps are expired or out of order".into(),
+            ));
+        }
+        if self.expires_at - self.issued_at > chrono::Duration::seconds(30) {
+            return Err(ValidationError(
+                "doorway challenge lifetime exceeds 30 seconds".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CorroborationEvidence {
+    pub schema: String,
+    pub method: CorroborationMethod,
+    pub evidence_id: Uuid,
+    pub source_key_id: String,
+    pub proof_digest_sha256: String,
+    pub distance_bucket: DoorwaySignalBucket,
+    pub observed_at: DateTime<Utc>,
+    pub proof: String,
+}
+
+impl CorroborationEvidence {
+    /// Validates shape and independence. The caller still verifies `proof` against
+    /// the registered source key and binds its digest to the challenge transcript.
+    pub fn validate_against(&self, challenge: &DoorwayChallenge) -> Result<(), ValidationError> {
+        if self.schema != DOORWAY_CORROBORATION_SCHEMA {
+            return Err(ValidationError(
+                "unsupported doorway corroboration schema".into(),
+            ));
+        }
+        validate_key_id(&self.source_key_id)?;
+        if self.source_key_id == challenge.beacon_key_id {
+            return Err(ValidationError(
+                "doorway corroboration must use an independent key".into(),
+            ));
+        }
+        validate_lower_hex_sha256("proof_digest_sha256", &self.proof_digest_sha256)?;
+        validate_base64url("doorway corroboration proof", &self.proof, 64, 2048)?;
+        if self.observed_at < challenge.issued_at || self.observed_at > challenge.expires_at {
+            return Err(ValidationError(
+                "doorway corroboration falls outside the challenge window".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PresenceSubmissionNonceRequest {
+    pub schema: String,
+    pub audience: String,
+    pub house_id: String,
+}
+
+impl PresenceSubmissionNonceRequest {
+    pub fn validate_shape(&self) -> Result<(), ValidationError> {
+        if self.schema != PRESENCE_SUBMISSION_NONCE_REQUEST_SCHEMA
+            || self.audience != PRESENCE_AUDIENCE
+        {
+            return Err(ValidationError(
+                "unsupported presence submission nonce request context".into(),
+            ));
+        }
+        validate_identifier("house_id", &self.house_id)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PresenceSubmissionNonce {
+    pub schema: String,
+    pub audience: String,
+    pub nonce: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl PresenceSubmissionNonce {
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        if self.schema != PRESENCE_SUBMISSION_NONCE_SCHEMA || self.audience != PRESENCE_AUDIENCE {
+            return Err(ValidationError(
+                "unsupported presence submission nonce context".into(),
+            ));
+        }
+        validate_base64url("presence submission nonce", &self.nonce, 43, 86)?;
+        if self.expires_at <= now || self.expires_at - now > chrono::Duration::minutes(2) {
+            return Err(ValidationError(
+                "presence submission nonce must expire within 2 minutes".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DoorwayObservation {
+    pub schema: String,
+    pub audience: String,
+    pub observation_id: Uuid,
+    pub submission_nonce: String,
+    pub resident_device_key_id: String,
+    pub app_id: PeerApplication,
+    pub direction: DoorwayDirection,
+    pub signal_bucket: DoorwaySignalBucket,
+    pub previous_presence_sequence: u64,
+    pub policy_version: String,
+    pub challenge: DoorwayChallenge,
+    pub corroboration: CorroborationEvidence,
+    pub observed_at: DateTime<Utc>,
+    /// Opaque Shared Auth-bound proof. It is never a bearer or introspection credential.
+    pub device_attestation: String,
+    pub device_signature: String,
+}
+
+impl DoorwayObservation {
+    /// Validates the closed wire contract. Registered-key signature checks,
+    /// membership authorization, nonce consumption, and replay state are backend work.
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        if self.schema != DOORWAY_OBSERVATION_SCHEMA || self.audience != PRESENCE_AUDIENCE {
+            return Err(ValidationError(
+                "unsupported doorway observation context".into(),
+            ));
+        }
+        validate_base64url("presence submission nonce", &self.submission_nonce, 43, 86)?;
+        validate_key_id(&self.resident_device_key_id)?;
+        validate_identifier("policy_version", &self.policy_version)?;
+        validate_base64url("device_attestation", &self.device_attestation, 64, 4096)?;
+        validate_base64url("device_signature", &self.device_signature, 64, 512)?;
+        self.challenge.validate_shape(now)?;
+        self.corroboration.validate_against(&self.challenge)?;
+        if self.observed_at < self.challenge.issued_at
+            || self.observed_at > self.challenge.expires_at
+            || self.observed_at > now + chrono::Duration::seconds(5)
+        {
+            return Err(ValidationError(
+                "doorway observation falls outside the challenge window".into(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Direction uncertainty never becomes an automatic entry or exit decision.
+    pub fn direction_requires_confirmation(&self) -> bool {
+        !matches!(
+            (self.direction, self.challenge.direction_hint),
+            (DoorwayDirection::Entry, DoorwayDirectionHint::Entry)
+                | (DoorwayDirection::Exit, DoorwayDirectionHint::Exit)
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PresenceDecisionKind {
+    Accepted,
+    ConfirmationRequired,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PresenceDecisionReason {
+    Accepted,
+    AmbiguousDirection,
+    AuthenticationUnavailable,
+    DeviceRevoked,
+    EvidenceInvalid,
+    Expired,
+    MembershipDenied,
+    PolicyConflict,
+    RateLimited,
+    Replayed,
+    UnsupportedVersion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PresenceDecision {
+    pub schema: String,
+    pub decision: PresenceDecisionKind,
+    pub reason: PresenceDecisionReason,
+    pub event_id: Uuid,
+    pub observation_id: Uuid,
+    pub house_id: String,
+    pub door_id: String,
+    pub direction: DoorwayDirection,
+    pub presence_sequence: u64,
+    pub policy_version: String,
+    pub recorded_at: DateTime<Utc>,
+}
+
+impl PresenceDecision {
+    pub fn validate_shape(&self) -> Result<(), ValidationError> {
+        if self.schema != PRESENCE_DECISION_SCHEMA {
+            return Err(ValidationError(
+                "unsupported presence decision schema".into(),
+            ));
+        }
+        validate_identifier("house_id", &self.house_id)?;
+        validate_identifier("door_id", &self.door_id)?;
+        validate_identifier("policy_version", &self.policy_version)?;
+        match (self.decision, self.reason) {
+            (PresenceDecisionKind::Accepted, PresenceDecisionReason::Accepted)
+            | (
+                PresenceDecisionKind::ConfirmationRequired,
+                PresenceDecisionReason::AmbiguousDirection,
+            )
+            | (
+                PresenceDecisionKind::ConfirmationRequired,
+                PresenceDecisionReason::PolicyConflict,
+            ) => Ok(()),
+            (PresenceDecisionKind::Accepted, _)
+            | (PresenceDecisionKind::ConfirmationRequired, _)
+            | (PresenceDecisionKind::Rejected, PresenceDecisionReason::Accepted)
+            | (PresenceDecisionKind::Rejected, PresenceDecisionReason::AmbiguousDirection) => Err(
+                ValidationError("presence decision and reason are inconsistent".into()),
+            ),
+            (PresenceDecisionKind::Rejected, _) => Ok(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactFieldKind {
+    Github,
+    Matrix,
+    Website,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContactField {
+    pub kind: ContactFieldKind,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContactCard {
+    pub schema: String,
+    pub record_id: Uuid,
+    pub display_alias: String,
+    pub fields: Vec<ContactField>,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl ContactCard {
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        if self.schema != CONTACT_CARD_SCHEMA {
+            return Err(ValidationError("unsupported contact card schema".into()));
+        }
+        validate_plain_text("display_alias", &self.display_alias, 1, 80, false)?;
+        if self.fields.len() > 8 {
+            return Err(ValidationError("contact card exceeds 8 fields".into()));
+        }
+        for field in &self.fields {
+            validate_plain_text("contact field", &field.value, 1, 256, false)?;
+            match field.kind {
+                ContactFieldKind::Website if !field.value.starts_with("https://") => {
+                    return Err(ValidationError("contact website must use HTTPS".into()));
+                }
+                ContactFieldKind::Matrix
+                    if !field.value.starts_with('@') || !field.value.contains(':') =>
+                {
+                    return Err(ValidationError("invalid Matrix contact shape".into()));
+                }
+                _ => {}
+            }
+        }
+        validate_record_window(self.created_at, self.expires_at, now)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResidentMessageTopic {
+    Chat,
+    HouseCoordination,
+    Support,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResidentMessage {
+    pub schema: String,
+    pub record_id: Uuid,
+    pub topic: ResidentMessageTopic,
+    pub format: String,
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl ResidentMessage {
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        if self.schema != RESIDENT_MESSAGE_SCHEMA || self.format != "plain_text" {
+            return Err(ValidationError(
+                "resident messages must use the plain-text v1 schema".into(),
+            ));
+        }
+        validate_plain_text("resident message", &self.text, 1, 4096, true)?;
+        validate_record_window(self.created_at, self.expires_at, now)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PeerReceiptStatus {
+    Received,
+    Declined,
+    Expired,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PeerReceipt {
+    pub schema: String,
+    pub record_id: Uuid,
+    pub acknowledged_record_id: Uuid,
+    pub status: PeerReceiptStatus,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl PeerReceipt {
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        if self.schema != PEER_RECEIPT_SCHEMA {
+            return Err(ValidationError("unsupported peer receipt schema".into()));
+        }
+        if self.record_id == self.acknowledged_record_id {
+            return Err(ValidationError("receipt cannot acknowledge itself".into()));
+        }
+        validate_record_window(self.created_at, self.expires_at, now)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum P2pJsonRecord {
+    ContactCard(ContactCard),
+    ResidentMessage(ResidentMessage),
+    Receipt(PeerReceipt),
+}
+
+impl P2pJsonRecord {
+    pub fn validate_shape(&self, now: DateTime<Utc>) -> Result<(), ValidationError> {
+        match self {
+            Self::ContactCard(record) => record.validate_shape(now),
+            Self::ResidentMessage(record) => record.validate_shape(now),
+            Self::Receipt(record) => record.validate_shape(now),
+        }
+    }
+
+    pub fn payload_type(&self) -> PeerPayloadType {
+        match self {
+            Self::ContactCard(_) => PeerPayloadType::ContactCard,
+            Self::ResidentMessage(_) => PeerPayloadType::ResidentMessage,
+            Self::Receipt(_) => PeerPayloadType::Receipt,
+        }
+    }
+}
+
 fn validate_protocol(value: &str) -> Result<(), ValidationError> {
     if value != PEER_PROTOCOL_VERSION {
         return Err(ValidationError("unsupported peer protocol version".into()));
@@ -381,6 +832,69 @@ fn validate_key_id(value: &str) -> Result<(), ValidationError> {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'))
     {
         return Err(ValidationError("invalid peer key identifier".into()));
+    }
+    Ok(())
+}
+
+fn validate_identifier(name: &str, value: &str) -> Result<(), ValidationError> {
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'))
+    {
+        return Err(ValidationError(format!("invalid {name}")));
+    }
+    Ok(())
+}
+
+fn validate_lower_hex_sha256(name: &str, value: &str) -> Result<(), ValidationError> {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(ValidationError(format!(
+            "{name} must be lowercase hexadecimal SHA-256"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_plain_text(
+    name: &str,
+    value: &str,
+    minimum: usize,
+    maximum: usize,
+    allow_newlines: bool,
+) -> Result<(), ValidationError> {
+    let length = value.chars().count();
+    let has_forbidden_control = value.chars().any(|character| {
+        character == '\0'
+            || (!allow_newlines && character.is_control())
+            || (allow_newlines
+                && character.is_control()
+                && !matches!(character, '\n' | '\r' | '\t'))
+    });
+    if !(minimum..=maximum).contains(&length) || has_forbidden_control {
+        return Err(ValidationError(format!("invalid {name}")));
+    }
+    Ok(())
+}
+
+fn validate_record_window(
+    created_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+    now: DateTime<Utc>,
+) -> Result<(), ValidationError> {
+    if created_at > now + chrono::Duration::seconds(5)
+        || expires_at <= now
+        || expires_at <= created_at
+        || expires_at - created_at > chrono::Duration::minutes(10)
+    {
+        return Err(ValidationError(
+            "P2P JSON record timestamps are expired or out of order".into(),
+        ));
     }
     Ok(())
 }
@@ -575,5 +1089,119 @@ mod tests {
         let manifest: SignedUpdateManifest =
             serde_json::from_value(fixture["signed_update_manifest"].clone()).unwrap();
         assert!(manifest.validate_shape().is_ok());
+    }
+
+    fn canonical_observation(now: DateTime<Utc>) -> DoorwayObservation {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/doorway-observation.json")).unwrap();
+        let mut observation: DoorwayObservation =
+            serde_json::from_value(fixture["observation"].clone()).unwrap();
+        observation.challenge.issued_at = now - chrono::Duration::seconds(2);
+        observation.challenge.expires_at = now + chrono::Duration::seconds(18);
+        observation.corroboration.observed_at = now - chrono::Duration::seconds(1);
+        observation.observed_at = now;
+        observation
+    }
+
+    #[test]
+    fn canonical_doorway_fixture_is_closed_and_valid() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/doorway-observation.json")).unwrap();
+        let now = Utc::now();
+
+        let mut nonce: PresenceSubmissionNonce =
+            serde_json::from_value(fixture["submission_nonce"].clone()).unwrap();
+        nonce.expires_at = now + chrono::Duration::seconds(30);
+        assert!(nonce.validate_shape(now).is_ok());
+
+        let observation = canonical_observation(now);
+        assert!(observation.validate_shape(now).is_ok());
+        assert!(!observation.direction_requires_confirmation());
+
+        let decision: PresenceDecision =
+            serde_json::from_value(fixture["decision"].clone()).unwrap();
+        assert!(decision.validate_shape().is_ok());
+
+        let mut unknown_field = fixture["observation"].clone();
+        unknown_field["raw_rssi"] = serde_json::json!(-42);
+        assert!(serde_json::from_value::<DoorwayObservation>(unknown_field).is_err());
+    }
+
+    #[test]
+    fn doorway_observation_requires_independent_timely_evidence() {
+        let now = Utc::now();
+        let mut observation = canonical_observation(now);
+        observation.corroboration.source_key_id = observation.challenge.beacon_key_id.clone();
+        assert!(observation.validate_shape(now).is_err());
+
+        observation.corroboration.source_key_id = "door-controller:front-1".into();
+        observation.challenge.expires_at =
+            observation.challenge.issued_at + chrono::Duration::seconds(31);
+        assert!(observation.validate_shape(now).is_err());
+
+        observation.challenge.expires_at = now + chrono::Duration::seconds(18);
+        observation.corroboration.observed_at =
+            observation.challenge.issued_at - chrono::Duration::milliseconds(1);
+        assert!(observation.validate_shape(now).is_err());
+    }
+
+    #[test]
+    fn uncertain_or_conflicting_direction_requires_confirmation() {
+        let now = Utc::now();
+        let mut observation = canonical_observation(now);
+        observation.challenge.direction_hint = DoorwayDirectionHint::Ambiguous;
+        assert!(observation.validate_shape(now).is_ok());
+        assert!(observation.direction_requires_confirmation());
+
+        observation.challenge.direction_hint = DoorwayDirectionHint::Exit;
+        assert!(observation.direction_requires_confirmation());
+    }
+
+    #[test]
+    fn canonical_p2p_json_records_deserialize_and_validate() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/p2p-json-records.json")).unwrap();
+        let now = Utc::now();
+
+        let mut contact: ContactCard =
+            serde_json::from_value(fixture["contact_card"].clone()).unwrap();
+        contact.created_at = now - chrono::Duration::seconds(1);
+        contact.expires_at = now + chrono::Duration::minutes(9);
+        assert!(contact.validate_shape(now).is_ok());
+
+        let mut message: ResidentMessage =
+            serde_json::from_value(fixture["resident_message"].clone()).unwrap();
+        message.created_at = now - chrono::Duration::seconds(1);
+        message.expires_at = now + chrono::Duration::minutes(9);
+        assert!(message.validate_shape(now).is_ok());
+
+        let mut receipt: PeerReceipt = serde_json::from_value(fixture["receipt"].clone()).unwrap();
+        receipt.created_at = now - chrono::Duration::seconds(1);
+        receipt.expires_at = now + chrono::Duration::minutes(1);
+        assert!(receipt.validate_shape(now).is_ok());
+    }
+
+    #[test]
+    fn p2p_json_records_reject_unsafe_or_unbounded_shapes() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/p2p-json-records.json")).unwrap();
+        let now = Utc::now();
+
+        let mut contact: ContactCard =
+            serde_json::from_value(fixture["contact_card"].clone()).unwrap();
+        contact.created_at = now;
+        contact.expires_at = now + chrono::Duration::minutes(1);
+        contact.fields[1].value = "http://nearby-peer/profile".into();
+        assert!(contact.validate_shape(now).is_err());
+
+        let mut message: ResidentMessage =
+            serde_json::from_value(fixture["resident_message"].clone()).unwrap();
+        message.created_at = now;
+        message.expires_at = now + chrono::Duration::minutes(11);
+        assert!(message.validate_shape(now).is_err());
+
+        let mut unknown_field = fixture["resident_message"].clone();
+        unknown_field["html"] = serde_json::json!("<script>unsafe()</script>");
+        assert!(serde_json::from_value::<ResidentMessage>(unknown_field).is_err());
     }
 }

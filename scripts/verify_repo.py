@@ -20,7 +20,11 @@ def main() -> int:
         "docs/architecture.md",
         "docs/mobile-presence-boundary.md",
         "docs/p2p-bluetooth-boundary.md",
+        "fixtures/doorway-observation.json",
+        "fixtures/p2p-json-records.json",
         "fixtures/peer-session.json",
+        "schemas/doorway-observation.json",
+        "schemas/p2p-json-records.json",
         "schemas/peer-session.json",
         "schemas/visitor-access.json",
         ".zpkg.toml",
@@ -31,14 +35,16 @@ def main() -> int:
         raise SystemExit(f"missing required paths: {missing}")
 
     openapi = json.loads((ROOT / "openapi/openapi.json").read_text(encoding="utf-8"))
-    required_visitor_paths = {
+    required_api_paths = {
         "/v1/visitor-qr/{action}",
         "/v1/visits/check-in",
         "/v1/visits/check-out",
+        "/v1/presence/submission-nonces",
+        "/v1/presence/observations",
     }
-    missing_visitor_paths = required_visitor_paths - set(openapi.get("paths", {}))
-    if missing_visitor_paths:
-        raise SystemExit(f"missing visitor OpenAPI paths: {sorted(missing_visitor_paths)}")
+    missing_api_paths = required_api_paths - set(openapi.get("paths", {}))
+    if missing_api_paths:
+        raise SystemExit(f"missing required OpenAPI paths: {sorted(missing_api_paths)}")
 
     visitor_contract = json.loads(
         (ROOT / "schemas/visitor-access.json").read_text(encoding="utf-8")
@@ -92,6 +98,79 @@ def main() -> int:
         raise SystemExit(
             f"missing peer-session safety guards: {sorted(missing_peer_guards)}"
         )
+
+    doorway_contract = json.loads(
+        (ROOT / "schemas/doorway-observation.json").read_text(encoding="utf-8")
+    )
+    required_doorway_definitions = {
+        "DoorwayChallenge",
+        "CorroborationEvidence",
+        "PresenceSubmissionNonceRequest",
+        "PresenceSubmissionNonce",
+        "DoorwayObservation",
+        "PresenceDecision",
+        "PresenceApiError",
+    }
+    missing_doorway_definitions = required_doorway_definitions - set(
+        doorway_contract.get("$defs", {})
+    )
+    if missing_doorway_definitions:
+        raise SystemExit(
+            f"missing doorway schema definitions: {sorted(missing_doorway_definitions)}"
+        )
+
+    doorway_text = json.dumps(doorway_contract, sort_keys=True)
+    required_doorway_guards = {
+        '"const": "hhm.doorway-observation.v1"',
+        '"const": "hhm-presence-observation"',
+        '"enum": ["contact", "doorway", "near"]',
+        '"maxLength": 4096',
+    }
+    missing_doorway_guards = {
+        guard for guard in required_doorway_guards if guard not in doorway_text
+    }
+    if missing_doorway_guards:
+        raise SystemExit(
+            f"missing doorway safety guards: {sorted(missing_doorway_guards)}"
+        )
+
+    p2p_records = json.loads(
+        (ROOT / "schemas/p2p-json-records.json").read_text(encoding="utf-8")
+    )
+    required_record_definitions = {
+        "ContactCard",
+        "ResidentMessage",
+        "PeerReceipt",
+        "P2pJsonRecord",
+    }
+    missing_record_definitions = required_record_definitions - set(
+        p2p_records.get("$defs", {})
+    )
+    if missing_record_definitions:
+        raise SystemExit(
+            f"missing P2P JSON definitions: {sorted(missing_record_definitions)}"
+        )
+
+    record_text = json.dumps(p2p_records, sort_keys=True)
+    required_record_guards = {
+        '"const": "plain_text"',
+        '"const": "hhm.contact-card.v1"',
+        '"const": "hhm.receipt.v1"',
+        '"maxLength": 4096',
+    }
+    missing_record_guards = {
+        guard for guard in required_record_guards if guard not in record_text
+    }
+    if missing_record_guards:
+        raise SystemExit(
+            f"missing P2P JSON safety guards: {sorted(missing_record_guards)}"
+        )
+
+    for fixture_path in (
+        "fixtures/doorway-observation.json",
+        "fixtures/p2p-json-records.json",
+    ):
+        json.loads((ROOT / fixture_path).read_text(encoding="utf-8"))
 
     for path in ROOT.rglob("*"):
         if not path.is_file() or ".git" in path.parts or path.stat().st_size > 1_000_000:

@@ -131,7 +131,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "./schemas/visitor-access.json#/$defs/IssueQrRequest"
+                "$ref": "../schemas/visitor-access.json#/$defs/IssueQrRequest"
               }
             }
           }
@@ -142,7 +142,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./schemas/visitor-access.json#/$defs/IssuedQr"
+                  "$ref": "../schemas/visitor-access.json#/$defs/IssuedQr"
                 }
               }
             }
@@ -170,7 +170,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "./schemas/visitor-access.json#/$defs/CheckInRequest"
+                "$ref": "../schemas/visitor-access.json#/$defs/CheckInRequest"
               }
             }
           }
@@ -181,7 +181,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./schemas/visitor-access.json#/$defs/CheckInReceipt"
+                  "$ref": "../schemas/visitor-access.json#/$defs/CheckInReceipt"
                 }
               }
             }
@@ -209,7 +209,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "./schemas/visitor-access.json#/$defs/CheckOutRequest"
+                "$ref": "../schemas/visitor-access.json#/$defs/CheckOutRequest"
               }
             }
           }
@@ -220,7 +220,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./schemas/visitor-access.json#/$defs/CheckOutReceipt"
+                  "$ref": "../schemas/visitor-access.json#/$defs/CheckOutReceipt"
                 }
               }
             }
@@ -236,6 +236,108 @@
           },
           "503": {
             "$ref": "#/components/responses/VisitorError"
+          }
+        }
+      }
+    },
+    "/v1/presence/submission-nonces": {
+      "post": {
+        "operationId": "issuePresenceSubmissionNonce",
+        "description": "Issues a short-lived, one-use nonce bound server-side to the verified principal, device policy, audience, and requested house. A nonce does not establish presence.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "supabaseToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/doorway-observation.json#/$defs/PresenceSubmissionNonceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "short-lived presence submission nonce",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/doorway-observation.json#/$defs/PresenceSubmissionNonce"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "403": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "429": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PresenceError"
+          }
+        }
+      }
+    },
+    "/v1/presence/observations": {
+      "post": {
+        "operationId": "submitDoorwayObservation",
+        "description": "Submits corroborated managed-doorway evidence from an enrolled device. Only an accepted backend decision advances presence; proximity alone never does.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "supabaseToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/doorway-observation.json#/$defs/DoorwayObservation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "accepted or confirmation-required presence decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/doorway-observation.json#/$defs/PresenceDecision"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "403": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "409": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "422": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "429": {
+            "$ref": "#/components/responses/PresenceError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PresenceError"
           }
         }
       }
@@ -269,7 +371,17 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "./schemas/visitor-access.json#/$defs/ApiError"
+              "$ref": "../schemas/visitor-access.json#/$defs/ApiError"
+            }
+          }
+        }
+      },
+      "PresenceError": {
+        "description": "stable managed-presence error; availability failures remain distinct from invalid evidence",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/doorway-observation.json#/$defs/PresenceApiError"
             }
           }
         }
@@ -277,7 +389,7 @@
     },
     "schemas": {
       "Reservation": {
-        "$ref": "./schemas/reservation.json"
+        "$ref": "../schemas/reservation.json"
       },
       "CreateReservation": {
         "type": "object",
@@ -297,22 +409,34 @@
         }
       },
       "VisitorIssueQrRequest": {
-        "$ref": "./schemas/visitor-access.json#/$defs/IssueQrRequest"
+        "$ref": "../schemas/visitor-access.json#/$defs/IssueQrRequest"
       },
       "VisitorIssuedQr": {
-        "$ref": "./schemas/visitor-access.json#/$defs/IssuedQr"
+        "$ref": "../schemas/visitor-access.json#/$defs/IssuedQr"
       },
       "VisitorCheckInRequest": {
-        "$ref": "./schemas/visitor-access.json#/$defs/CheckInRequest"
+        "$ref": "../schemas/visitor-access.json#/$defs/CheckInRequest"
       },
       "VisitorCheckInReceipt": {
-        "$ref": "./schemas/visitor-access.json#/$defs/CheckInReceipt"
+        "$ref": "../schemas/visitor-access.json#/$defs/CheckInReceipt"
       },
       "VisitorCheckOutRequest": {
-        "$ref": "./schemas/visitor-access.json#/$defs/CheckOutRequest"
+        "$ref": "../schemas/visitor-access.json#/$defs/CheckOutRequest"
       },
       "VisitorCheckOutReceipt": {
-        "$ref": "./schemas/visitor-access.json#/$defs/CheckOutReceipt"
+        "$ref": "../schemas/visitor-access.json#/$defs/CheckOutReceipt"
+      },
+      "PresenceSubmissionNonceRequest": {
+        "$ref": "../schemas/doorway-observation.json#/$defs/PresenceSubmissionNonceRequest"
+      },
+      "PresenceSubmissionNonce": {
+        "$ref": "../schemas/doorway-observation.json#/$defs/PresenceSubmissionNonce"
+      },
+      "DoorwayObservation": {
+        "$ref": "../schemas/doorway-observation.json#/$defs/DoorwayObservation"
+      },
+      "PresenceDecision": {
+        "$ref": "../schemas/doorway-observation.json#/$defs/PresenceDecision"
       }
     }
   }
