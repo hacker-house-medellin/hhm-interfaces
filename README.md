@@ -4,6 +4,16 @@ Canonical Hacker House Medellin OpenAPI, AsyncAPI, JSON Schema, member, stay, ro
 
 Initialized through `DEN-1950` as a testable `interfaces` foundation. Product behavior continues through focused pull requests.
 
+Visitor check-in, check-out, minute-rotating QR issuance, and stable error payloads are defined in `schemas/visitor-access.json` and exposed by both `openapi.yaml` and `openapi/openapi.json`. QR issuance accepts either Shared Auth bearer authentication or the Supabase token header at the transport layer; HHM services must still apply product-owned authorization to the verified provider, tenant, and subject tuple.
+
+The visitor contract deliberately contains no camera, audio, biometric, transcript, or activity-inference payload. Those data classes require a separately reviewed privacy and security interface before an ingestion endpoint can exist.
+
+The native resident-app and automatic-presence threat model is documented in [`docs/mobile-presence-boundary.md`](docs/mobile-presence-boundary.md). Bluetooth or location alone is never accepted as proof of a doorway crossing.
+
+Authenticated, consented peer sessions over Bluetooth or another nearby transport are defined by [`schemas/peer-session.json`](schemas/peer-session.json), [`schemas/p2p-json-records.json`](schemas/p2p-json-records.json), their fixtures, and [`docs/p2p-bluetooth-boundary.md`](docs/p2p-bluetooth-boundary.md). BLE discovery, signal strength, OS pairing, and remembered devices never establish trust. The v1 contract requires a Shared Auth–bound device attestation, an authenticated ephemeral-key transcript, replay/expiry checks, allowlisted encrypted payload types, bounded envelopes, and signed anti-rollback update metadata. The only v1 JSON records are bounded contact cards, plain-text resident messages, and receipts; arbitrary JSON, HTML, credentials, and executable payloads are not supported. Peers cannot authorize users, unlock doors, transmit credentials, or cause peer-supplied code to execute.
+
+Managed-doorway observations are defined by [`schemas/doorway-observation.json`](schemas/doorway-observation.json) and [`fixtures/doorway-observation.json`](fixtures/doorway-observation.json). An observation combines a registered beacon's signed challenge, a separately keyed corroboration proof, a backend submission nonce, and an enrolled device signature. It can establish that an enrolled device observed valid managed-doorway evidence; it does not establish biometric identity, a person's exact location, or door-unlock authorization. Ambiguous or contradictory direction evidence requires resident confirmation.
+
 ```bash
 python3 scripts/verify_repo.py
 ```

@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hacker-house-medellin/hhm-interfaces/schemas/doorway-observation.json",
+  "title": "HHM managed-doorway observation contracts",
+  "description": "Corroborated evidence that an enrolled device observed a managed doorway challenge. This is not biometric identity, exact human location, or door-unlock authorization.",
+  "$defs": {
+    "Base64Url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "BoundedIdentifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+    },
+    "Direction": {
+      "type": "string",
+      "enum": ["entry", "exit"]
+    },
+    "DirectionHint": {
+      "type": "string",
+      "enum": ["entry", "exit", "ambiguous"]
+    },
+    "SignalBucket": {
+      "description": "A coarse local bucket. Raw RSSI, ranging traces, and coordinates are prohibited.",
+      "type": "string",
+      "enum": ["contact", "doorway", "near"]
+    },
+    "CorroborationMethod": {
+      "type": "string",
+      "enum": ["door_controller", "nfc_tap", "uwb_range", "local_network_challenge"]
+    },
+    "DoorwayChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "house_id",
+        "door_id",
+        "beacon_key_id",
+        "key_version",
+        "challenge_id",
+        "nonce",
+        "direction_hint",
+        "issued_at",
+        "expires_at",
+        "signature"
+      ],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.doorway-challenge.v1" },
+        "house_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "door_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "beacon_key_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "key_version": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "challenge_id": { "type": "string", "format": "uuid" },
+        "nonce": {
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 43,
+          "maxLength": 86
+        },
+        "direction_hint": { "$ref": "#/$defs/DirectionHint" },
+        "issued_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "signature": {
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 64,
+          "maxLength": 512
+        }
+      }
+    },
+    "CorroborationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "method",
+        "evidence_id",
+        "source_key_id",
+        "proof_digest_sha256",
+        "distance_bucket",
+        "observed_at",
+        "proof"
+      ],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.doorway-corroboration.v1" },
+        "method": { "$ref": "#/$defs/CorroborationMethod" },
+        "evidence_id": { "type": "string", "format": "uuid" },
+        "source_key_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "proof_digest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "distance_bucket": { "$ref": "#/$defs/SignalBucket" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "proof": {
+          "description": "Opaque signed proof verified against a registered independent source key.",
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 64,
+          "maxLength": 2048
+        }
+      }
+    },
+    "PresenceSubmissionNonceRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "audience", "house_id"],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.presence-submission-nonce-request.v1" },
+        "audience": { "type": "string", "const": "hhm-presence-observation" },
+        "house_id": { "$ref": "#/$defs/BoundedIdentifier" }
+      }
+    },
+    "PresenceSubmissionNonce": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "audience", "nonce", "expires_at"],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.presence-submission-nonce.v1" },
+        "audience": { "type": "string", "const": "hhm-presence-observation" },
+        "nonce": {
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 43,
+          "maxLength": 86
+        },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "DoorwayObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "audience",
+        "observation_id",
+        "submission_nonce",
+        "resident_device_key_id",
+        "app_id",
+        "direction",
+        "signal_bucket",
+        "previous_presence_sequence",
+        "policy_version",
+        "challenge",
+        "corroboration",
+        "observed_at",
+        "device_attestation",
+        "device_signature"
+      ],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.doorway-observation.v1" },
+        "audience": { "type": "string", "const": "hhm-presence-observation" },
+        "observation_id": { "type": "string", "format": "uuid" },
+        "submission_nonce": {
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 43,
+          "maxLength": 86
+        },
+        "resident_device_key_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "app_id": {
+          "type": "string",
+          "enum": ["hhm-flutter", "hhm-desktop-app.rs"]
+        },
+        "direction": { "$ref": "#/$defs/Direction" },
+        "signal_bucket": { "$ref": "#/$defs/SignalBucket" },
+        "previous_presence_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "policy_version": { "$ref": "#/$defs/BoundedIdentifier" },
+        "challenge": { "$ref": "#/$defs/DoorwayChallenge" },
+        "corroboration": { "$ref": "#/$defs/CorroborationEvidence" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "device_attestation": {
+          "description": "Short-lived Shared Auth-bound enrolled-device proof, never a bearer or introspection credential.",
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 64,
+          "maxLength": 4096
+        },
+        "device_signature": {
+          "allOf": [{ "$ref": "#/$defs/Base64Url" }],
+          "minLength": 64,
+          "maxLength": 512
+        }
+      }
+    },
+    "PresenceDecisionReason": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "ambiguous_direction",
+        "authentication_unavailable",
+        "device_revoked",
+        "evidence_invalid",
+        "expired",
+        "membership_denied",
+        "policy_conflict",
+        "rate_limited",
+        "replayed",
+        "unsupported_version"
+      ]
+    },
+    "PresenceDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "decision",
+        "reason",
+        "event_id",
+        "observation_id",
+        "house_id",
+        "door_id",
+        "direction",
+        "presence_sequence",
+        "policy_version",
+        "recorded_at"
+      ],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.presence-decision.v1" },
+        "decision": {
+          "type": "string",
+          "enum": ["accepted", "confirmation_required", "rejected"]
+        },
+        "reason": { "$ref": "#/$defs/PresenceDecisionReason" },
+        "event_id": { "type": "string", "format": "uuid" },
+        "observation_id": { "type": "string", "format": "uuid" },
+        "house_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "door_id": { "$ref": "#/$defs/BoundedIdentifier" },
+        "direction": { "$ref": "#/$defs/Direction" },
+        "presence_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "policy_version": { "$ref": "#/$defs/BoundedIdentifier" },
+        "recorded_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PresenceApiError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "code", "message", "request_id"],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.presence-error.v1" },
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_request",
+            "unauthenticated",
+            "membership_denied",
+            "replayed",
+            "policy_conflict",
+            "rate_limited",
+            "presence_unavailable"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "request_id": { "$ref": "#/$defs/BoundedIdentifier" }
+      }
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hacker-house-medellin/hhm-interfaces/schemas/p2p-json-records.json",
+  "title": "HHM allowlisted P2P JSON records",
+  "description": "Strict JSON payloads carried only inside an authenticated hhm.p2p.v1 encrypted envelope after explicit capability consent.",
+  "$defs": {
+    "ContactField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["github", "matrix", "website"]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+        }
+      }
+    },
+    "ContactCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "record_id", "display_alias", "fields", "created_at", "expires_at"],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.contact-card.v1" },
+        "record_id": { "type": "string", "format": "uuid" },
+        "display_alias": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ContactField" },
+          "maxItems": 8
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ResidentMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "record_id", "topic", "format", "text", "created_at", "expires_at"],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.resident-message.v1" },
+        "record_id": { "type": "string", "format": "uuid" },
+        "topic": {
+          "type": "string",
+          "enum": ["chat", "house_coordination", "support"]
+        },
+        "format": { "type": "string", "const": "plain_text" },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "reply_to": { "type": "string", "format": "uuid" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PeerReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "record_id", "acknowledged_record_id", "status", "created_at", "expires_at"],
+      "properties": {
+        "schema": { "type": "string", "const": "hhm.receipt.v1" },
+        "record_id": { "type": "string", "format": "uuid" },
+        "acknowledged_record_id": { "type": "string", "format": "uuid" },
+        "status": {
+          "type": "string",
+          "enum": ["received", "declined", "expired"]
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "P2pJsonRecord": {
+      "oneOf": [
+        { "$ref": "#/$defs/ContactCard" },
+        { "$ref": "#/$defs/ResidentMessage" },
+        { "$ref": "#/$defs/PeerReceipt" }
+      ]
+    }
+  }
+}

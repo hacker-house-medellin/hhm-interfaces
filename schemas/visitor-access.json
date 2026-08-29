@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hacker-house-medellin/hhm-interfaces/schemas/visitor-access.json",
+  "title": "HHM visitor access contracts",
+  "$defs": {
+    "DoorId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "QrToken": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Opaque signed HHM visitor-access token without the hhm-visitor: presentation prefix."
+    },
+    "IssueQrRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["door_id"],
+      "properties": {
+        "door_id": { "$ref": "#/$defs/DoorId" }
+      }
+    },
+    "IssuedQr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "door_id", "qr_payload", "expires_at"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["check_in", "check_out"]
+        },
+        "door_id": { "$ref": "#/$defs/DoorId" },
+        "qr_payload": {
+          "type": "string",
+          "minLength": 13,
+          "maxLength": 1036,
+          "pattern": "^hhm-visitor:hhm1\\."
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "CheckInRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["door_id", "qr_token", "display_name", "privacy_notice_version"],
+      "properties": {
+        "door_id": { "$ref": "#/$defs/DoorId" },
+        "qr_token": { "$ref": "#/$defs/QrToken" },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Visitor-provided display name; the API trims surrounding whitespace and rejects control characters."
+        },
+        "privacy_notice_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "CheckInReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visit_id", "checkout_receipt", "checked_in_at"],
+      "properties": {
+        "visit_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "checkout_receipt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Private bearer receipt returned once to the visitor and required at check-out."
+        },
+        "checked_in_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "CheckOutRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["door_id", "qr_token", "visit_id", "checkout_receipt"],
+      "properties": {
+        "door_id": { "$ref": "#/$defs/DoorId" },
+        "qr_token": { "$ref": "#/$defs/QrToken" },
+        "visit_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "checkout_receipt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "CheckOutReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visit_id", "checked_out_at"],
+      "properties": {
+        "visit_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "checked_out_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ApiError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/IssueQrRequest" },
+    { "$ref": "#/$defs/IssuedQr" },
+    { "$ref": "#/$defs/CheckInRequest" },
+    { "$ref": "#/$defs/CheckInReceipt" },
+    { "$ref": "#/$defs/CheckOutRequest" },
+    { "$ref": "#/$defs/CheckOutReceipt" },
+    { "$ref": "#/$defs/ApiError" }
+  ]
+}
