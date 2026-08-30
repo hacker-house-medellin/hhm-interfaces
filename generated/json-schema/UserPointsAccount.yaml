@@ -1,0 +1,30 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: UserPointsAccount.yaml
+type: object
+properties:
+  subject:
+    $ref: "#/$defs/SharedAuthSubject"
+  balance:
+    type: string
+  lifetimeEarned:
+    type: string
+  lifetimeRedeemed:
+    type: string
+  version:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time
+required:
+  - subject
+  - balance
+  - lifetimeEarned
+  - lifetimeRedeemed
+  - version
+  - updatedAt
+$defs:
+  SharedAuthSubject:
+    type: string
+    minLength: 8
+    maxLength: 255
+    description: An opaque Shared Auth subject. It is always derived from a verified session, never accepted from a form body.

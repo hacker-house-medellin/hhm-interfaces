@@ -4,6 +4,8 @@ use std::collections::HashSet;
 use std::fmt;
 use uuid::Uuid;
 
+pub mod intake;
+
 pub const PEER_PROTOCOL_VERSION: &str = "hhm.p2p.v1";
 pub const PEER_UPDATE_MANIFEST_SCHEMA: &str = "hhm.update-manifest.v1";
 pub const PEER_MAX_ENCODED_CIPHERTEXT_BYTES: usize = 87_384;

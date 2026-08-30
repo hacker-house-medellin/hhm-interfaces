@@ -1,0 +1,49 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: PreInterestCreate.yaml
+type: object
+properties:
+  email:
+    $ref: "#/$defs/EmailAddress"
+  linkedinUrl:
+    $ref: "#/$defs/LinkedInUrl"
+  entrepreneurshipIdea:
+    type: string
+    minLength: 40
+    maxLength: 4000
+  stayPreference:
+    $ref: "#/$defs/StayPreference"
+  privacyNoticeVersion:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: The versioned privacy notice the applicant affirmatively accepted.
+  turnstileToken:
+    type: string
+    minLength: 1
+    maxLength: 4096
+    description: An anti-automation proof. It is validated server-side and is never persisted.
+required:
+  - email
+  - linkedinUrl
+  - entrepreneurshipIdea
+  - stayPreference
+  - privacyNoticeVersion
+  - turnstileToken
+$defs:
+  EmailAddress:
+    type: string
+    minLength: 3
+    maxLength: 320
+    format: email
+    description: A stable lower-case email address. The server normalizes the domain and preserves the local part.
+  LinkedInUrl:
+    type: string
+    minLength: 20
+    maxLength: 500
+    format: uri
+    description: An HTTPS LinkedIn profile URL. Redirectors and credential-bearing URLs are rejected.
+  StayPreference:
+    type: string
+    enum:
+      - three_months
+      - six_months

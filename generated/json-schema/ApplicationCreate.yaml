@@ -1,0 +1,116 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: ApplicationCreate.yaml
+type: object
+properties:
+  email:
+    $ref: "#/$defs/EmailAddress"
+  linkedinUrl:
+    $ref: "#/$defs/LinkedInUrl"
+  legalName:
+    type: string
+    minLength: 2
+    maxLength: 200
+  dateOfBirth:
+    type: string
+    format: date
+    description: Used only for age eligibility review and subject to the intake retention policy.
+  nationality:
+    type: string
+    minLength: 2
+    maxLength: 120
+  phone:
+    type: string
+    minLength: 7
+    maxLength: 32
+  currentCity:
+    type: string
+    minLength: 2
+    maxLength: 160
+  githubUrl:
+    type: string
+    format: uri
+  portfolioUrl:
+    type: string
+    format: uri
+  entrepreneurshipIdea:
+    type: string
+    minLength: 80
+    maxLength: 8000
+  projectStage:
+    $ref: "#/$defs/ProjectStage"
+  stayPreference:
+    $ref: "#/$defs/StayPreference"
+  preferredStartMonth:
+    type: string
+    format: date
+  communityContribution:
+    type: string
+    minLength: 40
+    maxLength: 4000
+  accessibilityOrAccommodationNotes:
+    type: string
+    maxLength: 4000
+  resumeUploadId:
+    $ref: "#/$defs/Uuid"
+  photoIdUploadId:
+    $ref: "#/$defs/Uuid"
+  ageAndIdentityAttestation:
+    type: boolean
+    const: true
+    description: The applicant attests that they are at least 18 and the submitted identity document is theirs.
+  privacyNoticeVersion:
+    type: string
+    minLength: 1
+    maxLength: 64
+  turnstileToken:
+    type: string
+    minLength: 1
+    maxLength: 4096
+required:
+  - email
+  - linkedinUrl
+  - legalName
+  - dateOfBirth
+  - nationality
+  - phone
+  - currentCity
+  - entrepreneurshipIdea
+  - projectStage
+  - stayPreference
+  - preferredStartMonth
+  - communityContribution
+  - resumeUploadId
+  - photoIdUploadId
+  - ageAndIdentityAttestation
+  - privacyNoticeVersion
+  - turnstileToken
+$defs:
+  EmailAddress:
+    type: string
+    minLength: 3
+    maxLength: 320
+    format: email
+    description: A stable lower-case email address. The server normalizes the domain and preserves the local part.
+  LinkedInUrl:
+    type: string
+    minLength: 20
+    maxLength: 500
+    format: uri
+    description: An HTTPS LinkedIn profile URL. Redirectors and credential-bearing URLs are rejected.
+  ProjectStage:
+    type: string
+    enum:
+      - idea
+      - prototype
+      - early_revenue
+      - growing
+      - nonprofit_or_open_source
+  StayPreference:
+    type: string
+    enum:
+      - three_months
+      - six_months
+  Uuid:
+    type: string
+    format: uuid
+    description: A UUID formatted identifier.

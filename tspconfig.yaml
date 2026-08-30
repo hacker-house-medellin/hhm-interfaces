@@ -1,0 +1,13 @@
+emit:
+  - "@typespec/openapi3"
+  - "@typespec/json-schema"
+
+options:
+  "@typespec/openapi3":
+    emitter-output-dir: "{output-dir}/openapi"
+    output-file: "intake.openapi.yaml"
+    openapi-versions: ["3.1.0"]
+  "@typespec/json-schema":
+    emitter-output-dir: "{output-dir}/json-schema"
+
+warn-as-error: true

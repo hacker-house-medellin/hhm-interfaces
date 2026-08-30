@@ -2,6 +2,13 @@
 
 Canonical Hacker House Medellin OpenAPI, AsyncAPI, JSON Schema, member, stay, room, event, and project contracts.
 
+The public and authenticated intake surfaces are defined from one TypeSpec source in `typespec/main.tsp`. It covers pre-interest, application, private resume/photo-ID upload intents, authenticated referrals, durable dual-persistence receipts, and the append-only user-points contract. Generated OpenAPI and JSON Schema artifacts live under `generated/`; privacy, retention, idempotency, and dual-write behavior are documented in `docs/intake-privacy-boundary.md`.
+
+```bash
+npm ci
+npm run generate:intake
+```
+
 Initialized through `DEN-1950` as a testable `interfaces` foundation. Product behavior continues through focused pull requests.
 
 Visitor check-in, check-out, minute-rotating QR issuance, and stable error payloads are defined in `schemas/visitor-access.json` and exposed by both `openapi.yaml` and `openapi/openapi.json`. QR issuance accepts either Shared Auth bearer authentication or the Supabase token header at the transport layer; HHM services must still apply product-owned authorization to the verified provider, tenant, and subject tuple.

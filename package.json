@@ -1,0 +1,17 @@
+{
+  "name": "@hhaus/intake-interfaces",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:intake": "tsp compile typespec/main.tsp --output-dir generated",
+    "check:intake": "npm run generate:intake && git diff --exit-code -- generated"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "1.15.0",
+    "@typespec/http": "1.15.0",
+    "@typespec/json-schema": "1.15.0",
+    "@typespec/openapi": "1.15.0",
+    "@typespec/openapi3": "1.15.0"
+  }
+}

@@ -1,0 +1,13 @@
+# Intake privacy and persistence boundary
+
+The intake forms accept contact details, professional links, proposal text, a resume, and a photo identity document. Those fields are personal data. The photo ID is collected only to confirm adult eligibility and identity; it must never become a profile photo, biometric template, general identity store, analytics input, log field, test fixture, or model-training corpus.
+
+The browser sends form fields to the HHaus web/API boundary. The server validates and normalizes the request, generates the authoritative submission ID, writes the product PostgreSQL record, and mirrors the same ID and normalized fields to the HHaus Supabase project. A `201` response is emitted only after both writes are durable. If the first write succeeds and the mirror is unavailable, the server records a retryable outbox item and returns `503` with the stable submission ID; a retry with the same idempotency key completes the mirror without producing a second application.
+
+Resume and identity-document bytes use the two-step upload contract. The API creates a short-lived, content-type- and size-bound private upload intent. The browser uploads directly to the private Supabase Storage bucket. PostgreSQL and Supabase store only the opaque object key, digest, type, size, review state, and expiry—not the document bytes. Download links are short-lived and admin-authorized. Malware scanning and digest verification must complete before review.
+
+Photo-ID objects expire 30 days after a terminal review decision unless a documented legal hold applies. Resumes expire after 12 months unless the applicant renews consent. Deletion is recorded by an immutable tombstone containing only the object ID, digest, deletion time, and policy reason. Logs contain request IDs, coarse outcome codes, and timing only; they must not contain emails, LinkedIn URLs, names, dates of birth, proposal text, filenames, object URLs, bearer tokens, or document metadata.
+
+Public endpoints require exact-origin CORS, bounded bodies, per-IP and per-email abuse controls, and a server-verified Turnstile token. Authentication is optional for pre-interest and application submission; when present, the server may prefill verified profile fields and associates the submission with the authenticated subject. The body never accepts a subject. Referral submission always requires an authenticated user and always derives the referrer from the verified session.
+
+User points are an append-only ledger plus a derived balance. No client or public API may set a balance directly. Every credit or debit carries an idempotency key, a bounded reason code, an actor, and an optional source submission. Negative balances and ledger rewrites fail closed.
