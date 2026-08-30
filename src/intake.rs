@@ -131,6 +131,17 @@ impl UploadIntentCreate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadIntentReceipt {
+    pub upload_id: Uuid,
+    pub kind: UploadKind,
+    pub upload_url: Url,
+    pub expires_at: chrono::DateTime<Utc>,
+    pub maximum_bytes: u64,
+    pub allowed_content_types: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ApplicationCreate {
     pub email: String,
