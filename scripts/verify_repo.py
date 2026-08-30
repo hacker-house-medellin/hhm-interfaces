@@ -32,6 +32,7 @@ def main() -> int:
         "generated/json-schema/ApplicationCreate.yaml",
         "generated/json-schema/PreInterestCreate.yaml",
         "generated/json-schema/ReferralCreate.yaml",
+        "generated/json-schema/UploadCompleteCreate.yaml",
         "docs/intake-privacy-boundary.md",
         ".zpkg.toml",
         *metadata.get("required_paths", []),

@@ -156,6 +156,23 @@ model UploadIntentReceipt {
 }
 
 @jsonSchema
+model UploadCompleteCreate {
+  @doc("Lower-case hexadecimal SHA-256 digest of the exact bytes uploaded to Supabase Storage.")
+  @pattern("^[a-f0-9]{64}$")
+  sha256: string;
+
+  @minLength(1)
+  @maxLength(4096)
+  turnstileToken: string;
+}
+
+@jsonSchema
+model UploadCompletionReceipt {
+  uploadId: Uuid;
+  status: "verified";
+}
+
+@jsonSchema
 model ApplicationCreate {
   email: EmailAddress;
   linkedinUrl: LinkedInUrl;
@@ -292,6 +309,11 @@ model CreatedUploadResponse {
   @body body: UploadIntentReceipt;
 }
 
+model CompletedUploadResponse {
+  @statusCode statusCode: 200;
+  @body body: UploadCompletionReceipt;
+}
+
 model InvalidResponse {
   @statusCode statusCode: 422;
   @body body: ApiError;
@@ -328,6 +350,13 @@ interface IntakeUploads {
     @header("Idempotency-Key") idempotencyKey: IdempotencyKey,
     @body body: UploadIntentCreate,
   ): CreatedUploadResponse | InvalidResponse | ConflictResponse | UnavailableResponse;
+
+  @route("/{uploadId}/complete")
+  @post
+  complete(
+    @path uploadId: Uuid,
+    @body body: UploadCompleteCreate,
+  ): CompletedUploadResponse | InvalidResponse | ConflictResponse | UnavailableResponse;
 }
 
 @route("/v1/applications")

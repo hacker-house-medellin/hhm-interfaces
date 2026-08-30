@@ -90,6 +90,46 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadIntentCreate'
+  /v1/intake/uploads/{uploadId}/complete:
+    post:
+      operationId: IntakeUploads_complete
+      parameters:
+        - name: uploadId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadCompletionReceipt'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadCompleteCreate'
   /v1/pre-interests:
     post:
       operationId: PreInterests_create
@@ -438,6 +478,32 @@ components:
           type: string
           enum:
             - stored
+    UploadCompleteCreate:
+      type: object
+      required:
+        - sha256
+        - turnstileToken
+      properties:
+        sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Lower-case hexadecimal SHA-256 digest of the exact bytes uploaded to Supabase Storage.
+        turnstileToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+    UploadCompletionReceipt:
+      type: object
+      required:
+        - uploadId
+        - status
+      properties:
+        uploadId:
+          $ref: '#/components/schemas/Uuid'
+        status:
+          type: string
+          enum:
+            - verified
     UploadIntentCreate:
       type: object
       required:

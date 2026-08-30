@@ -73,6 +73,33 @@ pub struct UploadIntentCreate {
     pub turnstile_token: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UploadCompleteCreate {
+    pub sha256: String,
+    pub turnstile_token: String,
+}
+
+impl UploadCompleteCreate {
+    pub fn validate(&self) -> Result<(), IntakeValidationError> {
+        validate_sha256(&self.sha256)?;
+        validate_text("turnstileToken", &self.turnstile_token, 1, 4_096)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadCompletionReceipt {
+    pub upload_id: Uuid,
+    pub status: UploadCompletionStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UploadCompletionStatus {
+    Verified,
+}
+
 impl UploadIntentCreate {
     pub fn validate(&self) -> Result<(), IntakeValidationError> {
         validate_text("fileName", &self.file_name, 1, 255)?;
@@ -98,14 +125,7 @@ impl UploadIntentCreate {
         if !(1..=MAX_UPLOAD_BYTES).contains(&self.size_bytes) {
             return Err(IntakeValidationError::Invalid("sizeBytes"));
         }
-        if self.sha256.len() != 64
-            || !self
-                .sha256
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-        {
-            return Err(IntakeValidationError::Invalid("sha256"));
-        }
+        validate_sha256(&self.sha256)?;
         validate_text("turnstileToken", &self.turnstile_token, 1, 4_096)
     }
 }
@@ -283,6 +303,17 @@ fn validate_notice(value: &str) -> Result<(), IntakeValidationError> {
     Ok(())
 }
 
+fn validate_sha256(value: &str) -> Result<(), IntakeValidationError> {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(IntakeValidationError::Invalid("sha256"));
+    }
+    Ok(())
+}
+
 fn validate_adult(date_of_birth: NaiveDate) -> Result<(), IntakeValidationError> {
     let today = Utc::now().date_naive();
     let eighteenth_birthday = date_of_birth
@@ -376,6 +407,24 @@ mod tests {
         ] {
             assert!(invalid.validate().is_err());
         }
+    }
+
+    #[test]
+    fn upload_completion_rejects_uppercase_or_missing_proof() {
+        assert_eq!(
+            UploadCompleteCreate {
+                sha256: "A".repeat(64),
+                turnstile_token: "proof".into(),
+            }
+            .validate(),
+            Err(IntakeValidationError::Invalid("sha256"))
+        );
+        assert!(UploadCompleteCreate {
+            sha256: "a".repeat(64),
+            turnstile_token: String::new(),
+        }
+        .validate()
+        .is_err());
     }
 
     #[test]
