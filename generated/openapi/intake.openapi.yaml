@@ -259,7 +259,6 @@ components:
         - photoIdUploadId
         - ageAndIdentityAttestation
         - privacyNoticeVersion
-        - turnstileToken
       properties:
         email:
           $ref: '#/components/schemas/EmailAddress'
@@ -369,7 +368,6 @@ components:
         - entrepreneurshipIdea
         - stayPreference
         - privacyNoticeVersion
-        - turnstileToken
       properties:
         email:
           $ref: '#/components/schemas/EmailAddress'
@@ -390,7 +388,7 @@ components:
           type: string
           minLength: 1
           maxLength: 4096
-          description: An anti-automation proof. It is validated server-side and is never persisted.
+          description: An anti-automation proof required for anonymous submissions. An authenticated Shared Auth subject may omit it. It is never persisted.
     ProjectStage:
       type: string
       enum:
@@ -482,7 +480,6 @@ components:
       type: object
       required:
         - sha256
-        - turnstileToken
       properties:
         sha256:
           type: string
@@ -512,7 +509,6 @@ components:
         - contentType
         - sizeBytes
         - sha256
-        - turnstileToken
       properties:
         kind:
           $ref: '#/components/schemas/UploadKind'

@@ -12,4 +12,3 @@ properties:
     maxLength: 4096
 required:
   - sha256
-  - turnstileToken

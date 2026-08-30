@@ -83,7 +83,6 @@ required:
   - photoIdUploadId
   - ageAndIdentityAttestation
   - privacyNoticeVersion
-  - turnstileToken
 $defs:
   EmailAddress:
     type: string

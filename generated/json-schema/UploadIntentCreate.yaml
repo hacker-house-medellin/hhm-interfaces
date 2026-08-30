@@ -30,7 +30,6 @@ required:
   - contentType
   - sizeBytes
   - sha256
-  - turnstileToken
 $defs:
   UploadKind:
     type: string

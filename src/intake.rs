@@ -44,7 +44,7 @@ pub struct PreInterestCreate {
     pub entrepreneurship_idea: String,
     pub stay_preference: StayPreference,
     pub privacy_notice_version: String,
-    pub turnstile_token: String,
+    pub turnstile_token: Option<String>,
 }
 
 impl PreInterestCreate {
@@ -58,7 +58,7 @@ impl PreInterestCreate {
             4_000,
         )?;
         validate_notice(&self.privacy_notice_version)?;
-        validate_text("turnstileToken", &self.turnstile_token, 1, 4_096)
+        validate_optional_proof(self.turnstile_token.as_deref())
     }
 }
 
@@ -70,20 +70,20 @@ pub struct UploadIntentCreate {
     pub content_type: String,
     pub size_bytes: u64,
     pub sha256: String,
-    pub turnstile_token: String,
+    pub turnstile_token: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UploadCompleteCreate {
     pub sha256: String,
-    pub turnstile_token: String,
+    pub turnstile_token: Option<String>,
 }
 
 impl UploadCompleteCreate {
     pub fn validate(&self) -> Result<(), IntakeValidationError> {
         validate_sha256(&self.sha256)?;
-        validate_text("turnstileToken", &self.turnstile_token, 1, 4_096)
+        validate_optional_proof(self.turnstile_token.as_deref())
     }
 }
 
@@ -126,7 +126,7 @@ impl UploadIntentCreate {
             return Err(IntakeValidationError::Invalid("sizeBytes"));
         }
         validate_sha256(&self.sha256)?;
-        validate_text("turnstileToken", &self.turnstile_token, 1, 4_096)
+        validate_optional_proof(self.turnstile_token.as_deref())
     }
 }
 
@@ -163,7 +163,7 @@ pub struct ApplicationCreate {
     pub photo_id_upload_id: Uuid,
     pub age_and_identity_attestation: bool,
     pub privacy_notice_version: String,
-    pub turnstile_token: String,
+    pub turnstile_token: Option<String>,
 }
 
 impl ApplicationCreate {
@@ -196,7 +196,7 @@ impl ApplicationCreate {
             return Err(IntakeValidationError::Invalid("ageAndIdentityAttestation"));
         }
         validate_notice(&self.privacy_notice_version)?;
-        validate_text("turnstileToken", &self.turnstile_token, 1, 4_096)
+        validate_optional_proof(self.turnstile_token.as_deref())
     }
 }
 
@@ -314,6 +314,13 @@ fn validate_notice(value: &str) -> Result<(), IntakeValidationError> {
     Ok(())
 }
 
+fn validate_optional_proof(value: Option<&str>) -> Result<(), IntakeValidationError> {
+    match value {
+        Some(value) => validate_text("turnstileToken", value, 1, 4_096),
+        None => Ok(()),
+    }
+}
+
 fn validate_sha256(value: &str) -> Result<(), IntakeValidationError> {
     if value.len() != 64
         || !value
@@ -365,7 +372,7 @@ mod tests {
             entrepreneurship_idea: "A cooperative platform that helps independent builders share trusted operational knowledge.".into(),
             stay_preference: StayPreference::ThreeMonths,
             privacy_notice_version: PRIVACY_NOTICE_VERSION.into(),
-            turnstile_token: "test-proof".into(),
+            turnstile_token: Some("test-proof".into()),
         }
     }
 
@@ -394,7 +401,7 @@ mod tests {
             content_type: "image/jpeg".into(),
             size_bytes: 1234,
             sha256: "a".repeat(64),
-            turnstile_token: "proof".into(),
+            turnstile_token: Some("proof".into()),
         };
         assert_eq!(base.validate(), Ok(()));
 
@@ -421,18 +428,24 @@ mod tests {
     }
 
     #[test]
-    fn upload_completion_rejects_uppercase_or_missing_proof() {
+    fn upload_completion_allows_authentication_instead_of_proof() {
         assert_eq!(
             UploadCompleteCreate {
                 sha256: "A".repeat(64),
-                turnstile_token: "proof".into(),
+                turnstile_token: Some("proof".into()),
             }
             .validate(),
             Err(IntakeValidationError::Invalid("sha256"))
         );
         assert!(UploadCompleteCreate {
             sha256: "a".repeat(64),
-            turnstile_token: String::new(),
+            turnstile_token: None,
+        }
+        .validate()
+        .is_ok());
+        assert!(UploadCompleteCreate {
+            sha256: "a".repeat(64),
+            turnstile_token: Some(String::new()),
         }
         .validate()
         .is_err());

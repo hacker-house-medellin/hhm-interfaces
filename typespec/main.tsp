@@ -114,10 +114,10 @@ model PreInterestCreate {
   @maxLength(64)
   privacyNoticeVersion: string;
 
-  @doc("An anti-automation proof. It is validated server-side and is never persisted.")
+  @doc("An anti-automation proof required for anonymous submissions. An authenticated Shared Auth subject may omit it. It is never persisted.")
   @minLength(1)
   @maxLength(4096)
-  turnstileToken: string;
+  turnstileToken?: string;
 }
 
 @jsonSchema
@@ -142,7 +142,7 @@ model UploadIntentCreate {
 
   @minLength(1)
   @maxLength(4096)
-  turnstileToken: string;
+  turnstileToken?: string;
 }
 
 @jsonSchema
@@ -163,7 +163,7 @@ model UploadCompleteCreate {
 
   @minLength(1)
   @maxLength(4096)
-  turnstileToken: string;
+  turnstileToken?: string;
 }
 
 @jsonSchema
@@ -226,7 +226,7 @@ model ApplicationCreate {
 
   @minLength(1)
   @maxLength(4096)
-  turnstileToken: string;
+  turnstileToken?: string;
 }
 
 @jsonSchema

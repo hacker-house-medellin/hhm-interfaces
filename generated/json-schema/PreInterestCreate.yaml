@@ -21,14 +21,13 @@ properties:
     type: string
     minLength: 1
     maxLength: 4096
-    description: An anti-automation proof. It is validated server-side and is never persisted.
+    description: An anti-automation proof required for anonymous submissions. An authenticated Shared Auth subject may omit it. It is never persisted.
 required:
   - email
   - linkedinUrl
   - entrepreneurshipIdea
   - stayPreference
   - privacyNoticeVersion
-  - turnstileToken
 $defs:
   EmailAddress:
     type: string
