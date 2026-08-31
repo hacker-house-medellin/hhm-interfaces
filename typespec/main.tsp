@@ -58,6 +58,23 @@ enum ProjectStage {
   nonprofit_or_open_source: "nonprofit_or_open_source",
 }
 
+@doc("Applicant-reported sensitivity used only for room placement and accommodation planning.")
+enum SensitivityLevel {
+  none: "none",
+  low: "low",
+  moderate: "moderate",
+  high: "high",
+  prefer_not_to_say: "prefer_not_to_say",
+}
+
+@doc("Whether the applicant wants a private room or is open to sharing with one or two roommates.")
+enum RoommatePreference {
+  private_room: "private_room",
+  open_to_roommates: "open_to_roommates",
+  prefer_roommates: "prefer_roommates",
+  flexible: "flexible",
+}
+
 enum ApplicationStatus {
   submitted: "submitted",
   under_review: "under_review",
@@ -213,6 +230,33 @@ model ApplicationCreate {
 
   @maxLength(4000)
   accessibilityOrAccommodationNotes?: string;
+
+  @doc("Optional applicant-reported allergy information used only for accommodation and room placement. Do not use for admission scoring.")
+  @maxLength(2000)
+  allergyNotes?: string;
+
+  noiseSensitivity: SensitivityLevel;
+  lightSensitivity: SensitivityLevel;
+
+  @doc("Optional preferences about room location, environment, or layout.")
+  @maxLength(2000)
+  roomPreferenceNotes?: string;
+
+  roommatePreference: RoommatePreference;
+
+  @doc("Preferred total number of beds/occupants in the room. HHaus rooms may contain up to three beds.")
+  @minValue(1)
+  @maxValue(3)
+  preferredRoomOccupancy: int32;
+
+  @doc("Whether a shared room is desired partly to reduce the price of the stay.")
+  roommateForLowerCost: boolean;
+
+  @doc("Whether a shared room is desired partly for more social connection.")
+  roommateForSocialConnection: boolean;
+
+  @doc("The applicant explicitly consents to HHaus processing allergy, sensory, accommodation, and room-preference answers only for accommodation and placement planning.")
+  accommodationDataConsent: true;
 
   resumeUploadId: Uuid;
   photoIdUploadId: Uuid;
