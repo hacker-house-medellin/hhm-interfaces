@@ -1,0 +1,37 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: UploadIntentReceipt.yaml
+type: object
+properties:
+  uploadId:
+    $ref: "#/$defs/Uuid"
+  kind:
+    $ref: "#/$defs/UploadKind"
+  uploadUrl:
+    type: string
+    format: uri
+  expiresAt:
+    type: string
+    format: date-time
+  maximumBytes:
+    type: string
+  allowedContentTypes:
+    type: array
+    items:
+      type: string
+required:
+  - uploadId
+  - kind
+  - uploadUrl
+  - expiresAt
+  - maximumBytes
+  - allowedContentTypes
+$defs:
+  Uuid:
+    type: string
+    format: uuid
+    description: A UUID formatted identifier.
+  UploadKind:
+    type: string
+    enum:
+      - resume
+      - photo_id

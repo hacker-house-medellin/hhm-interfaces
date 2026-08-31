@@ -27,6 +27,13 @@ def main() -> int:
         "schemas/p2p-json-records.json",
         "schemas/peer-session.json",
         "schemas/visitor-access.json",
+        "typespec/main.tsp",
+        "generated/openapi/intake.openapi.yaml",
+        "generated/json-schema/ApplicationCreate.yaml",
+        "generated/json-schema/PreInterestCreate.yaml",
+        "generated/json-schema/ReferralCreate.yaml",
+        "generated/json-schema/UploadCompleteCreate.yaml",
+        "docs/intake-privacy-boundary.md",
         ".zpkg.toml",
         *metadata.get("required_paths", []),
     ]
@@ -173,7 +180,11 @@ def main() -> int:
         json.loads((ROOT / fixture_path).read_text(encoding="utf-8"))
 
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or path.stat().st_size > 1_000_000:
+        if (
+            not path.is_file()
+            or any(part in {".git", "node_modules", "target"} for part in path.parts)
+            or path.stat().st_size > 1_000_000
+        ):
             continue
         try:
             text = path.read_text(encoding="utf-8")

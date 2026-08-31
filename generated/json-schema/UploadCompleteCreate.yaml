@@ -1,0 +1,14 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: UploadCompleteCreate.yaml
+type: object
+properties:
+  sha256:
+    type: string
+    pattern: ^[a-f0-9]{64}$
+    description: Lower-case hexadecimal SHA-256 digest of the exact bytes uploaded to Supabase Storage.
+  turnstileToken:
+    type: string
+    minLength: 1
+    maxLength: 4096
+required:
+  - sha256
