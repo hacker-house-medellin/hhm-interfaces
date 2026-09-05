@@ -255,6 +255,13 @@ components:
         - stayPreference
         - preferredStartMonth
         - communityContribution
+        - noiseSensitivity
+        - lightSensitivity
+        - roommatePreference
+        - preferredRoomOccupancy
+        - roommateForLowerCost
+        - roommateForSocialConnection
+        - accommodationDataConsent
         - resumeUploadId
         - photoIdUploadId
         - ageAndIdentityAttestation
@@ -308,6 +315,37 @@ components:
         accessibilityOrAccommodationNotes:
           type: string
           maxLength: 4000
+        allergyNotes:
+          type: string
+          maxLength: 2000
+          description: Optional applicant-reported allergy information used only for accommodation and room placement. Do not use for admission scoring.
+        noiseSensitivity:
+          $ref: '#/components/schemas/SensitivityLevel'
+        lightSensitivity:
+          $ref: '#/components/schemas/SensitivityLevel'
+        roomPreferenceNotes:
+          type: string
+          maxLength: 2000
+          description: Optional preferences about room location, environment, or layout.
+        roommatePreference:
+          $ref: '#/components/schemas/RoommatePreference'
+        preferredRoomOccupancy:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 3
+          description: Preferred total number of beds/occupants in the room. HHaus rooms may contain up to three beds.
+        roommateForLowerCost:
+          type: boolean
+          description: Whether a shared room is desired partly to reduce the price of the stay.
+        roommateForSocialConnection:
+          type: boolean
+          description: Whether a shared room is desired partly for more social connection.
+        accommodationDataConsent:
+          type: boolean
+          enum:
+            - true
+          description: The applicant explicitly consents to HHaus processing allergy, sensory, accommodation, and room-preference answers only for accommodation and placement planning.
         resumeUploadId:
           $ref: '#/components/schemas/Uuid'
         photoIdUploadId:
@@ -438,6 +476,23 @@ components:
         - applied
         - accepted
         - declined
+    RoommatePreference:
+      type: string
+      enum:
+        - private_room
+        - open_to_roommates
+        - prefer_roommates
+        - flexible
+      description: Whether the applicant wants a private room or is open to sharing with one or two roommates.
+    SensitivityLevel:
+      type: string
+      enum:
+        - none
+        - low
+        - moderate
+        - high
+        - prefer_not_to_say
+      description: Applicant-reported sensitivity used only for room placement and accommodation planning.
     SharedAuthSubject:
       type: string
       minLength: 8

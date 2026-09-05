@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use uuid::Uuid;
 
-pub const PRIVACY_NOTICE_VERSION: &str = "2026-08-30";
+pub const PRIVACY_NOTICE_VERSION: &str = "2026-08-31";
 pub const MAX_UPLOAD_BYTES: u64 = 10 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,6 +27,25 @@ pub enum ProjectStage {
     EarlyRevenue,
     Growing,
     NonprofitOrOpenSource,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SensitivityLevel {
+    None,
+    Low,
+    Moderate,
+    High,
+    PreferNotToSay,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RoommatePreference {
+    PrivateRoom,
+    OpenToRoommates,
+    PreferRoommates,
+    Flexible,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -159,6 +178,15 @@ pub struct ApplicationCreate {
     pub preferred_start_month: NaiveDate,
     pub community_contribution: String,
     pub accessibility_or_accommodation_notes: Option<String>,
+    pub allergy_notes: Option<String>,
+    pub noise_sensitivity: SensitivityLevel,
+    pub light_sensitivity: SensitivityLevel,
+    pub room_preference_notes: Option<String>,
+    pub roommate_preference: RoommatePreference,
+    pub preferred_room_occupancy: i32,
+    pub roommate_for_lower_cost: bool,
+    pub roommate_for_social_connection: bool,
+    pub accommodation_data_consent: bool,
     pub resume_upload_id: Uuid,
     pub photo_id_upload_id: Uuid,
     pub age_and_identity_attestation: bool,
@@ -191,6 +219,18 @@ impl ApplicationCreate {
         )?;
         if let Some(notes) = self.accessibility_or_accommodation_notes.as_deref() {
             validate_text("accessibilityOrAccommodationNotes", notes, 0, 4_000)?;
+        }
+        if let Some(notes) = self.allergy_notes.as_deref() {
+            validate_text("allergyNotes", notes, 0, 2_000)?;
+        }
+        if let Some(notes) = self.room_preference_notes.as_deref() {
+            validate_text("roomPreferenceNotes", notes, 0, 2_000)?;
+        }
+        if !(1..=3).contains(&self.preferred_room_occupancy) {
+            return Err(IntakeValidationError::Invalid("preferredRoomOccupancy"));
+        }
+        if !self.accommodation_data_consent {
+            return Err(IntakeValidationError::Invalid("accommodationDataConsent"));
         }
         if !self.age_and_identity_attestation {
             return Err(IntakeValidationError::Invalid("ageAndIdentityAttestation"));
@@ -374,6 +414,59 @@ mod tests {
             privacy_notice_version: PRIVACY_NOTICE_VERSION.into(),
             turnstile_token: Some("test-proof".into()),
         }
+    }
+
+    fn valid_application() -> ApplicationCreate {
+        ApplicationCreate {
+            email: "builder@example.com".into(),
+            linkedin_url: "https://www.linkedin.com/in/example-builder".into(),
+            legal_name: "Example Builder".into(),
+            date_of_birth: NaiveDate::from_ymd_opt(1990, 1, 1).unwrap(),
+            nationality: "Colombian".into(),
+            phone: "+57 300 000 0000".into(),
+            current_city: "Medellin, Colombia".into(),
+            github_url: Some("https://github.com/example-builder".into()),
+            portfolio_url: None,
+            entrepreneurship_idea: "A cooperative platform that helps independent builders share trusted operational knowledge and launch sustainable ventures.".into(),
+            project_stage: ProjectStage::Prototype,
+            stay_preference: StayPreference::ThreeMonths,
+            preferred_start_month: NaiveDate::from_ymd_opt(2027, 1, 1).unwrap(),
+            community_contribution: "I will run weekly design reviews and help other residents test their products.".into(),
+            accessibility_or_accommodation_notes: None,
+            allergy_notes: Some("Peanut allergy; avoid shared food preparation surfaces.".into()),
+            noise_sensitivity: SensitivityLevel::Moderate,
+            light_sensitivity: SensitivityLevel::Low,
+            room_preference_notes: Some("A room away from the street would help.".into()),
+            roommate_preference: RoommatePreference::PreferRoommates,
+            preferred_room_occupancy: 3,
+            roommate_for_lower_cost: true,
+            roommate_for_social_connection: true,
+            accommodation_data_consent: true,
+            resume_upload_id: Uuid::new_v4(),
+            photo_id_upload_id: Uuid::new_v4(),
+            age_and_identity_attestation: true,
+            privacy_notice_version: PRIVACY_NOTICE_VERSION.into(),
+            turnstile_token: Some("test-proof".into()),
+        }
+    }
+
+    #[test]
+    fn application_validates_room_placement_preferences_and_consent() {
+        assert_eq!(valid_application().validate(), Ok(()));
+
+        let mut invalid_occupancy = valid_application();
+        invalid_occupancy.preferred_room_occupancy = 4;
+        assert_eq!(
+            invalid_occupancy.validate(),
+            Err(IntakeValidationError::Invalid("preferredRoomOccupancy"))
+        );
+
+        let mut without_consent = valid_application();
+        without_consent.accommodation_data_consent = false;
+        assert_eq!(
+            without_consent.validate(),
+            Err(IntakeValidationError::Invalid("accommodationDataConsent"))
+        );
     }
 
     #[test]
