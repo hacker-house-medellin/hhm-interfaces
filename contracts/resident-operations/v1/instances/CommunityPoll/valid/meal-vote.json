@@ -1,0 +1,18 @@
+{
+  "pollId": "77777777-7777-4777-8777-777777777777",
+  "tenantId": "22222222-2222-4222-8222-222222222222",
+  "propertyId": "33333333-3333-4333-8333-333333333333",
+  "createdBySubject": "shared-auth|manager-001",
+  "title": "Friday community dinner",
+  "status": "open",
+  "visibility": "anonymous_to_members",
+  "opensAt": "2026-09-06T20:00:00Z",
+  "closesAt": "2026-09-08T20:00:00Z",
+  "quorum": 6,
+  "maxSelections": 1,
+  "options": [
+    {"optionId": "88888888-8888-4888-8888-888888888888", "label": "Arepas night", "sortOrder": 0},
+    {"optionId": "99999999-9999-4999-8999-999999999999", "label": "Vegetable curry", "sortOrder": 1}
+  ],
+  "revision": 1
+}

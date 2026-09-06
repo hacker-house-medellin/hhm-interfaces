@@ -1,0 +1,9 @@
+{
+  "receiptId": "12121212-1212-4212-8212-121212121212",
+  "checkpointId": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+  "store": "browser_sql",
+  "status": "persisted",
+  "storedAt": "2026-09-06T10:01:00Z",
+  "sourceRevision": 4,
+  "canonical": false
+}

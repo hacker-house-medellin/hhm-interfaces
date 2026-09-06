@@ -28,6 +28,15 @@ jobs:
           npm ci
           npm run generate:intake
           git diff --exit-code -- generated
+      - name: Validate resident-operations peer authorities
+        uses: ORESoftware/typespec-json-schema-validator@282883afc4645f3303ed746bdb1e1571475724c5
+        with:
+          typespec: contracts/resident-operations/v1/main.tsp
+          schema: contracts/resident-operations/v1/authored.schema.json
+          instances: contracts/resident-operations/v1/instances
+          report: .typespec-json-schema-validator/resident-operations-v1.json
+          output_dir: .typespec-json-schema-validator/generated
+          quiet: "true"
       - name: Test Rust contracts
         run: |
           cargo fmt --all -- --check
