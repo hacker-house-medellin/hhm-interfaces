@@ -77,7 +77,7 @@ enum InvoiceStatus {
   paid: "paid",
   partially_refunded: "partially_refunded",
   refunded: "refunded",
-  void: "void",
+  voided: "void",
   disputed: "disputed",
 }
 
