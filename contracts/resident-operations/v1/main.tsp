@@ -174,7 +174,7 @@ model GuestVisit {
   accessGrantId?: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("ResourceReservation")
@@ -212,7 +212,7 @@ model ResourceReservation {
   assignmentPlanId?: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("MealPlan")
@@ -243,14 +243,13 @@ model MealPlan {
   @maxValue(250)
   participantLimit: int32;
 
-  @doc("Aggregate dietary summary only; never include a resident-level medical record.")
   @maxLength(1000)
   dietarySummary?: string;
 
   status: MealPlanStatus;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("PollOption")
@@ -306,7 +305,7 @@ model CommunityPoll {
   resultSnapshotId?: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("PollVote")
@@ -317,7 +316,6 @@ model PollVote {
   @format("uuid")
   pollId: string;
 
-  @doc("Present only for named ballots. Anonymous ballots use the eligibility receipt.")
   @minLength(8)
   @maxLength(255)
   voterSubject?: string;
@@ -356,13 +354,13 @@ model RentInvoice {
   currency: string;
 
   @minValue(0)
-  amountDueMinor: int64;
+  amountDueMinor: int32;
 
   @minValue(0)
-  amountPaidMinor: int64;
+  amountPaidMinor: int32;
 
   @minValue(0)
-  amountRefundedMinor: int64;
+  amountRefundedMinor: int32;
 
   status: InvoiceStatus;
   dueAt: utcDateTime;
@@ -374,7 +372,7 @@ model RentInvoice {
   stripeInvoiceReference?: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("PaymentRecord")
@@ -390,10 +388,10 @@ model PaymentRecord {
   idempotencyKey: string;
 
   @minValue(1)
-  amountMinor: int64;
+  amountMinor: int32;
 
   @minValue(0)
-  refundedAmountMinor: int64;
+  refundedAmountMinor: int32;
 
   @pattern("^[A-Z]{3}$")
   currency: string;
@@ -412,7 +410,7 @@ model PaymentRecord {
   occurredAt: utcDateTime;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("AgreementAcceptance")
@@ -452,7 +450,7 @@ model AgreementAcceptance {
   supersedesAcceptanceId?: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("OnboardingCheckpoint")
@@ -485,7 +483,7 @@ model OnboardingCheckpoint {
   updatedAt: utcDateTime;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("PersistenceReceipt")
@@ -501,9 +499,8 @@ model PersistenceReceipt {
   storedAt: utcDateTime;
 
   @minValue(0)
-  sourceRevision: int64;
+  sourceRevision: int32;
 
-  @doc("True only for a server-issued canonical record; browser stores are always false.")
   canonical: boolean;
 
   @maxLength(120)
@@ -577,7 +574,7 @@ model AssignmentResult {
   assignments: AssignmentDecision[];
 
   @minValue(0)
-  objectiveScoreScaled?: int64;
+  objectiveScoreScaled?: int32;
 
   completedAt?: utcDateTime;
 
@@ -614,7 +611,7 @@ model ChatGroupReference {
   membershipPolicyVersion: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("DeveloperAccessGrant")
@@ -652,7 +649,7 @@ model DeveloperAccessGrant {
   reasonCode: string;
 
   @minValue(0)
-  revision: int64;
+  revision: int32;
 }
 
 @id("ResidentOperationsEvent")
