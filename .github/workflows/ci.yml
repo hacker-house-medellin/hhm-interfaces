@@ -36,7 +36,16 @@ jobs:
           instances: contracts/resident-operations/v1/instances
           report: .typespec-json-schema-validator/resident-operations-v1.json
           output_dir: .typespec-json-schema-validator/generated
-          quiet: "true"
+          quiet: "false"
+      - name: Emit resident-operations parity report
+        if: always()
+        run: |
+          report=.typespec-json-schema-validator/resident-operations-v1.json
+          if test -f "$report"; then
+            cat "$report"
+          else
+            echo "resident-operations parity report was not created" >&2
+          fi
       - name: Test Rust contracts
         run: |
           cargo fmt --all -- --check
