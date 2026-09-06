@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package hhaus.platform.v1;
+
+// Protobuf owns only the bounded realtime transport envelope. The payload is
+// validated against the parity-checked TypeSpec/JSON Schema model named by
+// event_type; this file is not a third persistence authority.
+enum PlatformEventType {
+  PLATFORM_EVENT_TYPE_UNSPECIFIED = 0;
+  RESERVATION_TRANSITION = 1;
+  GUEST_PASS_TRANSITION = 2;
+  VISIT_TRANSITION = 3;
+  ACCESS_GRANT_TRANSITION = 4;
+  ACCESS_DECISION = 5;
+  SECURITY_OBSERVATION = 6;
+}
+
+message PlatformEventEnvelope {
+  string schema_version = 1;
+  string event_id = 2;
+  string tenant_id = 3;
+  string location_id = 4;
+  string aggregate_id = 5;
+  int64 aggregate_version = 6;
+  PlatformEventType event_type = 7;
+  string occurred_at = 8;
+  string traceparent = 9;
+  bytes payload_json = 10;
+}
