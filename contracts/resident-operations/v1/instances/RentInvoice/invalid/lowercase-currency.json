@@ -1,0 +1,17 @@
+{
+  "invoiceId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  "tenantId": "22222222-2222-4222-8222-222222222222",
+  "propertyId": "33333333-3333-4333-8333-333333333333",
+  "residentSubject": "shared-auth|resident-001",
+  "billingPeriodStart": "2026-09-01",
+  "billingPeriodEnd": "2026-09-30",
+  "currency": "usd",
+  "amountDueMinor": 85000,
+  "amountPaidMinor": 85000,
+  "amountRefundedMinor": 0,
+  "status": "paid",
+  "dueAt": "2026-09-05T23:59:59Z",
+  "stripeCustomerReference": "cus_reference",
+  "stripeInvoiceReference": "in_reference",
+  "revision": 3
+}

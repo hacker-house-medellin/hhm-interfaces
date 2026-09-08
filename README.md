@@ -44,6 +44,19 @@ Authenticated, consented peer sessions over Bluetooth or another nearby transpor
 
 Managed-doorway observations are defined by [`schemas/doorway-observation.json`](schemas/doorway-observation.json) and [`fixtures/doorway-observation.json`](fixtures/doorway-observation.json). An observation combines a registered beacon's signed challenge, a separately keyed corroboration proof, a backend submission nonce, and an enrolled device signature. It can establish that an enrolled device observed valid managed-doorway evidence; it does not establish biometric identity, a person's exact location, or door-unlock authorization. Ambiguous or contradictory direction evidence requires resident confirmation.
 
+## Resident operations v1
+
+[`contracts/resident-operations/v1`](contracts/resident-operations/v1) adds the peer-authority contract for guests, rooms and shared spaces, cooking and meals, polls, rent, Stripe reconciliation references, refunds, legal onboarding checkpoints, offline persistence receipts, MIP assignments, `ores-chat` groups and time-bounded developer access. The matching architecture and data-authority boundaries are documented in [`docs/resident-operations-v1.md`](docs/resident-operations-v1.md).
+
+Unlike the older intake generation lane, this contract deliberately keeps TypeSpec and authored JSON Schema Draft 2020-12 as independent authorities. Hosted CI generates comparison-only evidence with an exact-revision pin of `ORESoftware/typespec-json-schema-validator` and executes both authorities over the checked-in positive/negative corpus.
+
+```bash
+npx tsjsv check \
+  --typespec=contracts/resident-operations/v1/main.tsp \
+  --schema=contracts/resident-operations/v1/authored.schema.json \
+  --instances=contracts/resident-operations/v1/instances
+```
+
 ```bash
 python3 scripts/verify_repo.py
 ```

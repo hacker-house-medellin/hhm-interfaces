@@ -1,0 +1,12 @@
+{
+  "requestId": "13131313-1313-4313-8313-131313131313",
+  "tenantId": "22222222-2222-4222-8222-222222222222",
+  "propertyId": "33333333-3333-4333-8333-333333333333",
+  "problemKind": "room_assignment",
+  "candidateIds": [],
+  "resourceIds": ["room:A", "room:B"],
+  "constraintSetVersion": "room-assignment.v1",
+  "solverServiceReference": "mip-solver-node.rs@k8s/solver-v1",
+  "requestedBySubject": "shared-auth|manager-001",
+  "queuedAt": "2026-09-06T20:00:00Z"
+}
