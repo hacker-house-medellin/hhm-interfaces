@@ -9,6 +9,29 @@ npm ci
 npm run generate:intake
 ```
 
+The platform operations kernel is a separate additive lane. Its TypeSpec and
+JSON Schema documents are independently human-authored authorities; neither is
+generated from the other. A pinned `ores-contracts` revision parses and emits
+both lanes independently, rejects structural or byte-level disagreement, and
+publishes the agreed PostgreSQL, Rust, SeaORM, Diesel, TypeScript, and Dart
+artifacts under `generated/platform/`.
+
+The v1 kernel covers B2B organizations and B2C accounts, locations and spaces,
+reservations, guest passes and visits, access grants and fail-closed decisions,
+network credentials, maintenance, housekeeping, and privacy-safe security
+observations. Lifecycle mutations use version-checked append-only transition
+records. A bounded Protobuf envelope transports only payloads that pass the
+agreed runtime validator; Protobuf is not a third persistence authority.
+
+```bash
+npm ci
+npm run verify:platform
+cargo check --locked --manifest-path tests/platform-rust-witness/Cargo.toml
+```
+
+See [`docs/platform-contracts.md`](docs/platform-contracts.md) for ownership,
+privacy, transactional invariants, and downstream adoption gates.
+
 Initialized through `DEN-1950` as a testable `interfaces` foundation. Product behavior continues through focused pull requests.
 
 Visitor check-in, check-out, minute-rotating QR issuance, and stable error payloads are defined in `schemas/visitor-access.json` and exposed by both `openapi.yaml` and `openapi/openapi.json`. QR issuance accepts either Shared Auth bearer authentication or the Supabase token header at the transport layer; HHM services must still apply product-owned authorization to the verified provider, tenant, and subject tuple.
