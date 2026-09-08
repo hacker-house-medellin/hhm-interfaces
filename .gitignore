@@ -10,8 +10,8 @@ node_modules/
 dist/
 .astro/
 coverage/
-tmp
-temp
+tmp/
+temp/
 tmp/worktrees
 temp/worktrees
 .typespec-json-schema-validator/
