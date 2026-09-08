@@ -52,6 +52,11 @@ security, immutable-ledger triggers, grants, and least-privilege roles belong
 in reviewed additive migrations in `hhm-lib-core` and must have live PostgreSQL
 witnesses before deployment.
 
+The normalized operational `Reservation` persists to
+`hhm_space_reservations`. The distinct name deliberately preserves the legacy
+`hhm_reservations` persistence boundary and prevents generated schema adoption
+from silently redefining its incompatible row shape.
+
 ## Privacy and security boundary
 
 Canonical platform records never contain passwords, bearer or door tokens,

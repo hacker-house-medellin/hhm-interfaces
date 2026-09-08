@@ -272,7 +272,7 @@ pub mod schema {
     table! {
         use diesel::sql_types::*;
         use crate::sql_types::*;
-        hhm_reservations (id) {
+        hhm_space_reservations (id) {
             id -> Uuid,
             tenant_id -> Text,
             location_id -> Uuid,
@@ -392,13 +392,13 @@ pub mod schema {
     diesel::joinable!(hhm_access_grants -> hhm_bookable_spaces (space_id));
     diesel::joinable!(hhm_access_grants -> hhm_accounts (account_id));
     diesel::joinable!(hhm_access_grants -> hhm_guest_passes (guest_pass_id));
-    diesel::joinable!(hhm_access_grants -> hhm_reservations (reservation_id));
+    diesel::joinable!(hhm_access_grants -> hhm_space_reservations (reservation_id));
     // Explicit .on(...) required: hhm_access_grant_transitions.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_access_grant_transitions -> hhm_access_grants (access_grant_id));
     diesel::joinable!(hhm_access_grant_transitions -> hhm_accounts (actor_account_id));
     // Explicit .on(...) required: hhm_accounts has 2 foreign keys to hhm_organizations.
     // Explicit .on(...) required: hhm_guest_passes.tenant_id references non-primary hhm_organizations.tenant_id.
-    diesel::joinable!(hhm_guest_passes -> hhm_reservations (reservation_id));
+    diesel::joinable!(hhm_guest_passes -> hhm_space_reservations (reservation_id));
     diesel::joinable!(hhm_guest_passes -> hhm_accounts (issued_by_account_id));
     // Explicit .on(...) required: hhm_guest_pass_transitions.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_guest_pass_transitions -> hhm_guest_passes (guest_pass_id));
@@ -406,7 +406,7 @@ pub mod schema {
     // Explicit .on(...) required: hhm_housekeeping_tasks.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_housekeeping_tasks -> hhm_locations (location_id));
     diesel::joinable!(hhm_housekeeping_tasks -> hhm_bookable_spaces (space_id));
-    diesel::joinable!(hhm_housekeeping_tasks -> hhm_reservations (reservation_id));
+    diesel::joinable!(hhm_housekeeping_tasks -> hhm_space_reservations (reservation_id));
     diesel::joinable!(hhm_housekeeping_tasks -> hhm_accounts (assigned_to_account_id));
     // Explicit .on(...) required: hhm_locations.tenant_id references non-primary hhm_organizations.tenant_id.
     // Explicit .on(...) required: hhm_maintenance_tickets.tenant_id references non-primary hhm_organizations.tenant_id.
@@ -416,13 +416,13 @@ pub mod schema {
     // Explicit .on(...) required: hhm_network_credentials.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_network_credentials -> hhm_locations (location_id));
     diesel::joinable!(hhm_network_credentials -> hhm_accounts (account_id));
-    diesel::joinable!(hhm_network_credentials -> hhm_reservations (reservation_id));
-    // Explicit .on(...) required: hhm_reservations has 2 foreign keys to hhm_organizations.
-    diesel::joinable!(hhm_reservations -> hhm_locations (location_id));
-    diesel::joinable!(hhm_reservations -> hhm_bookable_spaces (space_id));
-    diesel::joinable!(hhm_reservations -> hhm_accounts (booked_by_account_id));
+    diesel::joinable!(hhm_network_credentials -> hhm_space_reservations (reservation_id));
+    // Explicit .on(...) required: hhm_space_reservations has 2 foreign keys to hhm_organizations.
+    diesel::joinable!(hhm_space_reservations -> hhm_locations (location_id));
+    diesel::joinable!(hhm_space_reservations -> hhm_bookable_spaces (space_id));
+    diesel::joinable!(hhm_space_reservations -> hhm_accounts (booked_by_account_id));
     // Explicit .on(...) required: hhm_reservation_transitions.tenant_id references non-primary hhm_organizations.tenant_id.
-    diesel::joinable!(hhm_reservation_transitions -> hhm_reservations (reservation_id));
+    diesel::joinable!(hhm_reservation_transitions -> hhm_space_reservations (reservation_id));
     diesel::joinable!(hhm_reservation_transitions -> hhm_accounts (actor_account_id));
     // Explicit .on(...) required: hhm_security_observations.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_security_observations -> hhm_locations (location_id));
@@ -433,13 +433,13 @@ pub mod schema {
     diesel::joinable!(hhm_bookable_spaces -> hhm_locations (location_id));
     // Explicit .on(...) required: hhm_visits.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_visits -> hhm_locations (location_id));
-    diesel::joinable!(hhm_visits -> hhm_reservations (reservation_id));
+    diesel::joinable!(hhm_visits -> hhm_space_reservations (reservation_id));
     diesel::joinable!(hhm_visits -> hhm_guest_passes (guest_pass_id));
     diesel::joinable!(hhm_visits -> hhm_accounts (account_id));
     // Explicit .on(...) required: hhm_visit_transitions.tenant_id references non-primary hhm_organizations.tenant_id.
     diesel::joinable!(hhm_visit_transitions -> hhm_visits (visit_id));
     diesel::joinable!(hhm_visit_transitions -> hhm_accounts (actor_account_id));
-    diesel::allow_tables_to_appear_in_same_query!(hhm_access_decisions, hhm_access_grants, hhm_access_grant_transitions, hhm_accounts, hhm_guest_passes, hhm_guest_pass_transitions, hhm_housekeeping_tasks, hhm_locations, hhm_maintenance_tickets, hhm_network_credentials, hhm_organizations, hhm_reservations, hhm_reservation_transitions, hhm_security_observations, hhm_bookable_spaces, hhm_visits, hhm_visit_transitions);
+    diesel::allow_tables_to_appear_in_same_query!(hhm_access_decisions, hhm_access_grants, hhm_access_grant_transitions, hhm_accounts, hhm_guest_passes, hhm_guest_pass_transitions, hhm_housekeeping_tasks, hhm_locations, hhm_maintenance_tickets, hhm_network_credentials, hhm_organizations, hhm_space_reservations, hhm_reservation_transitions, hhm_security_observations, hhm_bookable_spaces, hhm_visits, hhm_visit_transitions);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, diesel_derive_enum::DbEnum)]
@@ -1086,7 +1086,7 @@ pub struct Organization {
 }
 
 #[derive(Debug, Clone, PartialEq, diesel::Queryable, diesel::Selectable, diesel::Insertable, serde::Serialize, serde::Deserialize)]
-#[diesel(table_name = schema::hhm_reservations)]
+#[diesel(table_name = schema::hhm_space_reservations)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Reservation {
     pub id: uuid::Uuid,

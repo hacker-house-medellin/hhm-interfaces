@@ -306,7 +306,7 @@
     "Reservation": {
       "type": "object",
       "additionalProperties": false,
-      "x-ores-table": "hhm_reservations",
+      "x-ores-table": "hhm_space_reservations",
       "x-ores-primary-key": ["id"],
       "x-ores-unique": [["tenantId", "idempotencyKey"]],
       "x-ores-indexes": [

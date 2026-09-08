@@ -884,7 +884,7 @@ pub mod reservation {
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
-    #[sea_orm(table_name = "hhm_reservations")]
+    #[sea_orm(table_name = "hhm_space_reservations")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
         pub id: uuid::Uuid,

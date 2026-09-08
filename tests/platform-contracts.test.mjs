@@ -74,6 +74,8 @@ test("every persisted model is tenant-scoped and every generated table stays in 
   const tables = [...sql.matchAll(/^CREATE TABLE ([a-z0-9_]+) \(/gm)].map((match) => match[1]);
   assert.equal(tables.length, expectedModels.length);
   assert.ok(tables.every((table) => table.startsWith("hhm_")), tables.join(", "));
+  assert.ok(tables.includes("hhm_space_reservations"));
+  assert.equal(tables.includes("hhm_reservations"), false, "legacy reservation storage must not be redefined");
   assert.match(sql, /CREATE TABLE hhm_organizations[\s\S]*UNIQUE \(tenant_id\)/);
 });
 
