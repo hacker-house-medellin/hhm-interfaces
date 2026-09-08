@@ -1,0 +1,13 @@
+{
+  "paymentId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  "invoiceId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  "idempotencyKey": "payment:invoice:cccccccc:attempt:1",
+  "amountMinor": 85000,
+  "refundedAmountMinor": 0,
+  "currency": "USD",
+  "status": "succeeded",
+  "stripePaymentReference": "pi_reference",
+  "lastWebhookEventReference": "evt_reference",
+  "occurredAt": "2026-09-04T14:15:00Z",
+  "revision": 2
+}

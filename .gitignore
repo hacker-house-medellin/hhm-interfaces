@@ -12,3 +12,4 @@ tmp
 temp
 tmp/worktrees
 temp/worktrees
+.typespec-json-schema-validator/
