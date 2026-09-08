@@ -217,7 +217,7 @@ CREATE TABLE hhm_organizations (
 );
 CREATE INDEX hhm_organizations_idx_1 ON hhm_organizations (status);
 
-CREATE TABLE hhm_reservations (
+CREATE TABLE hhm_space_reservations (
   id UUID NOT NULL,
   tenant_id TEXT NOT NULL CHECK (char_length(tenant_id) <= 128),
   location_id UUID NOT NULL,
@@ -236,9 +236,9 @@ CREATE TABLE hhm_reservations (
   PRIMARY KEY (id),
   UNIQUE (tenant_id, idempotency_key)
 );
-CREATE INDEX hhm_reservations_idx_1 ON hhm_reservations (tenant_id, space_id, starts_at, ends_at);
-CREATE INDEX hhm_reservations_idx_2 ON hhm_reservations (tenant_id, booked_by_account_id, status);
-CREATE INDEX hhm_reservations_idx_3 ON hhm_reservations (tenant_id, organization_id, status);
+CREATE INDEX hhm_space_reservations_idx_1 ON hhm_space_reservations (tenant_id, space_id, starts_at, ends_at);
+CREATE INDEX hhm_space_reservations_idx_2 ON hhm_space_reservations (tenant_id, booked_by_account_id, status);
+CREATE INDEX hhm_space_reservations_idx_3 ON hhm_space_reservations (tenant_id, organization_id, status);
 
 CREATE TABLE hhm_reservation_transitions (
   id UUID NOT NULL,
@@ -336,14 +336,14 @@ ALTER TABLE hhm_access_grants ADD CONSTRAINT hhm_access_grants_location_id_fkey 
 ALTER TABLE hhm_access_grants ADD CONSTRAINT hhm_access_grants_space_id_fkey FOREIGN KEY (space_id) REFERENCES hhm_bookable_spaces (id);
 ALTER TABLE hhm_access_grants ADD CONSTRAINT hhm_access_grants_account_id_fkey FOREIGN KEY (account_id) REFERENCES hhm_accounts (id);
 ALTER TABLE hhm_access_grants ADD CONSTRAINT hhm_access_grants_guest_pass_id_fkey FOREIGN KEY (guest_pass_id) REFERENCES hhm_guest_passes (id);
-ALTER TABLE hhm_access_grants ADD CONSTRAINT hhm_access_grants_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_reservations (id);
+ALTER TABLE hhm_access_grants ADD CONSTRAINT hhm_access_grants_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_space_reservations (id);
 ALTER TABLE hhm_access_grant_transitions ADD CONSTRAINT hhm_access_grant_transitions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_access_grant_transitions ADD CONSTRAINT hhm_access_grant_transitions_access_grant_id_fkey FOREIGN KEY (access_grant_id) REFERENCES hhm_access_grants (id);
 ALTER TABLE hhm_access_grant_transitions ADD CONSTRAINT hhm_access_grant_transitions_actor_account_id_fkey FOREIGN KEY (actor_account_id) REFERENCES hhm_accounts (id);
 ALTER TABLE hhm_accounts ADD CONSTRAINT hhm_accounts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_accounts ADD CONSTRAINT hhm_accounts_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES hhm_organizations (id);
 ALTER TABLE hhm_guest_passes ADD CONSTRAINT hhm_guest_passes_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
-ALTER TABLE hhm_guest_passes ADD CONSTRAINT hhm_guest_passes_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_reservations (id);
+ALTER TABLE hhm_guest_passes ADD CONSTRAINT hhm_guest_passes_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_space_reservations (id);
 ALTER TABLE hhm_guest_passes ADD CONSTRAINT hhm_guest_passes_issued_by_account_id_fkey FOREIGN KEY (issued_by_account_id) REFERENCES hhm_accounts (id);
 ALTER TABLE hhm_guest_pass_transitions ADD CONSTRAINT hhm_guest_pass_transitions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_guest_pass_transitions ADD CONSTRAINT hhm_guest_pass_transitions_guest_pass_id_fkey FOREIGN KEY (guest_pass_id) REFERENCES hhm_guest_passes (id);
@@ -351,7 +351,7 @@ ALTER TABLE hhm_guest_pass_transitions ADD CONSTRAINT hhm_guest_pass_transitions
 ALTER TABLE hhm_housekeeping_tasks ADD CONSTRAINT hhm_housekeeping_tasks_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_housekeeping_tasks ADD CONSTRAINT hhm_housekeeping_tasks_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
 ALTER TABLE hhm_housekeeping_tasks ADD CONSTRAINT hhm_housekeeping_tasks_space_id_fkey FOREIGN KEY (space_id) REFERENCES hhm_bookable_spaces (id);
-ALTER TABLE hhm_housekeeping_tasks ADD CONSTRAINT hhm_housekeeping_tasks_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_reservations (id);
+ALTER TABLE hhm_housekeeping_tasks ADD CONSTRAINT hhm_housekeeping_tasks_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_space_reservations (id);
 ALTER TABLE hhm_housekeeping_tasks ADD CONSTRAINT hhm_housekeeping_tasks_assigned_to_account_id_fkey FOREIGN KEY (assigned_to_account_id) REFERENCES hhm_accounts (id);
 ALTER TABLE hhm_locations ADD CONSTRAINT hhm_locations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_maintenance_tickets ADD CONSTRAINT hhm_maintenance_tickets_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
@@ -362,14 +362,14 @@ ALTER TABLE hhm_maintenance_tickets ADD CONSTRAINT hhm_maintenance_tickets_assig
 ALTER TABLE hhm_network_credentials ADD CONSTRAINT hhm_network_credentials_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_network_credentials ADD CONSTRAINT hhm_network_credentials_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
 ALTER TABLE hhm_network_credentials ADD CONSTRAINT hhm_network_credentials_account_id_fkey FOREIGN KEY (account_id) REFERENCES hhm_accounts (id);
-ALTER TABLE hhm_network_credentials ADD CONSTRAINT hhm_network_credentials_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_reservations (id);
-ALTER TABLE hhm_reservations ADD CONSTRAINT hhm_reservations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
-ALTER TABLE hhm_reservations ADD CONSTRAINT hhm_reservations_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
-ALTER TABLE hhm_reservations ADD CONSTRAINT hhm_reservations_space_id_fkey FOREIGN KEY (space_id) REFERENCES hhm_bookable_spaces (id);
-ALTER TABLE hhm_reservations ADD CONSTRAINT hhm_reservations_booked_by_account_id_fkey FOREIGN KEY (booked_by_account_id) REFERENCES hhm_accounts (id);
-ALTER TABLE hhm_reservations ADD CONSTRAINT hhm_reservations_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES hhm_organizations (id);
+ALTER TABLE hhm_network_credentials ADD CONSTRAINT hhm_network_credentials_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_space_reservations (id);
+ALTER TABLE hhm_space_reservations ADD CONSTRAINT hhm_space_reservations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
+ALTER TABLE hhm_space_reservations ADD CONSTRAINT hhm_space_reservations_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
+ALTER TABLE hhm_space_reservations ADD CONSTRAINT hhm_space_reservations_space_id_fkey FOREIGN KEY (space_id) REFERENCES hhm_bookable_spaces (id);
+ALTER TABLE hhm_space_reservations ADD CONSTRAINT hhm_space_reservations_booked_by_account_id_fkey FOREIGN KEY (booked_by_account_id) REFERENCES hhm_accounts (id);
+ALTER TABLE hhm_space_reservations ADD CONSTRAINT hhm_space_reservations_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES hhm_organizations (id);
 ALTER TABLE hhm_reservation_transitions ADD CONSTRAINT hhm_reservation_transitions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
-ALTER TABLE hhm_reservation_transitions ADD CONSTRAINT hhm_reservation_transitions_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_reservations (id);
+ALTER TABLE hhm_reservation_transitions ADD CONSTRAINT hhm_reservation_transitions_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_space_reservations (id);
 ALTER TABLE hhm_reservation_transitions ADD CONSTRAINT hhm_reservation_transitions_actor_account_id_fkey FOREIGN KEY (actor_account_id) REFERENCES hhm_accounts (id);
 ALTER TABLE hhm_security_observations ADD CONSTRAINT hhm_security_observations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_security_observations ADD CONSTRAINT hhm_security_observations_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
@@ -380,7 +380,7 @@ ALTER TABLE hhm_bookable_spaces ADD CONSTRAINT hhm_bookable_spaces_tenant_id_fke
 ALTER TABLE hhm_bookable_spaces ADD CONSTRAINT hhm_bookable_spaces_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
 ALTER TABLE hhm_visits ADD CONSTRAINT hhm_visits_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);
 ALTER TABLE hhm_visits ADD CONSTRAINT hhm_visits_location_id_fkey FOREIGN KEY (location_id) REFERENCES hhm_locations (id);
-ALTER TABLE hhm_visits ADD CONSTRAINT hhm_visits_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_reservations (id);
+ALTER TABLE hhm_visits ADD CONSTRAINT hhm_visits_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES hhm_space_reservations (id);
 ALTER TABLE hhm_visits ADD CONSTRAINT hhm_visits_guest_pass_id_fkey FOREIGN KEY (guest_pass_id) REFERENCES hhm_guest_passes (id);
 ALTER TABLE hhm_visits ADD CONSTRAINT hhm_visits_account_id_fkey FOREIGN KEY (account_id) REFERENCES hhm_accounts (id);
 ALTER TABLE hhm_visit_transitions ADD CONSTRAINT hhm_visit_transitions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES hhm_organizations (tenant_id);

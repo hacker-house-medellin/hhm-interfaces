@@ -245,7 +245,7 @@ model Space {
   updatedAt: utcDateTime;
 }
 
-@Ores.table("hhm_reservations")
+@Ores.table("hhm_space_reservations")
 @Ores.unique("tenantId,idempotencyKey")
 @Ores.index("tenantId,spaceId,startsAt,endsAt")
 @Ores.index("tenantId,bookedByAccountId,status")
