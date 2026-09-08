@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "hhaus.platform.state-machines.v1",
+  "machines": {
+    "Reservation": {
+      "stateEnum": "ReservationStatus",
+      "transitionEnum": "ReservationTransitionKind",
+      "initialStates": ["requested"],
+      "terminalStates": ["completed", "cancelled", "expired", "no_show"],
+      "edges": [
+        { "kind": "requested_to_held", "from": "requested", "to": "held" },
+        {
+          "kind": "requested_to_confirmed",
+          "from": "requested",
+          "to": "confirmed"
+        },
+        {
+          "kind": "requested_to_cancelled",
+          "from": "requested",
+          "to": "cancelled"
+        },
+        { "kind": "held_to_confirmed", "from": "held", "to": "confirmed" },
+        { "kind": "held_to_cancelled", "from": "held", "to": "cancelled" },
+        { "kind": "held_to_expired", "from": "held", "to": "expired" },
+        {
+          "kind": "confirmed_to_checked_in",
+          "from": "confirmed",
+          "to": "checked_in"
+        },
+        {
+          "kind": "confirmed_to_cancelled",
+          "from": "confirmed",
+          "to": "cancelled"
+        },
+        {
+          "kind": "confirmed_to_no_show",
+          "from": "confirmed",
+          "to": "no_show"
+        },
+        {
+          "kind": "checked_in_to_checked_out",
+          "from": "checked_in",
+          "to": "checked_out"
+        },
+        {
+          "kind": "checked_out_to_completed",
+          "from": "checked_out",
+          "to": "completed"
+        }
+      ]
+    },
+    "GuestPass": {
+      "stateEnum": "GuestPassStatus",
+      "transitionEnum": "GuestPassTransitionKind",
+      "initialStates": ["planned"],
+      "terminalStates": ["checked_out", "revoked", "expired", "cancelled"],
+      "edges": [
+        { "kind": "planned_to_issued", "from": "planned", "to": "issued" },
+        {
+          "kind": "planned_to_cancelled",
+          "from": "planned",
+          "to": "cancelled"
+        },
+        {
+          "kind": "issued_to_checked_in",
+          "from": "issued",
+          "to": "checked_in"
+        },
+        { "kind": "issued_to_revoked", "from": "issued", "to": "revoked" },
+        { "kind": "issued_to_expired", "from": "issued", "to": "expired" },
+        { "kind": "issued_to_cancelled", "from": "issued", "to": "cancelled" },
+        {
+          "kind": "checked_in_to_checked_out",
+          "from": "checked_in",
+          "to": "checked_out"
+        },
+        {
+          "kind": "checked_in_to_revoked",
+          "from": "checked_in",
+          "to": "revoked"
+        }
+      ]
+    },
+    "Visit": {
+      "stateEnum": "VisitStatus",
+      "transitionEnum": "VisitTransitionKind",
+      "initialStates": ["expected"],
+      "terminalStates": ["checked_out", "denied", "cancelled"],
+      "edges": [
+        {
+          "kind": "expected_to_checked_in",
+          "from": "expected",
+          "to": "checked_in"
+        },
+        { "kind": "expected_to_denied", "from": "expected", "to": "denied" },
+        {
+          "kind": "expected_to_cancelled",
+          "from": "expected",
+          "to": "cancelled"
+        },
+        {
+          "kind": "checked_in_to_checked_out",
+          "from": "checked_in",
+          "to": "checked_out"
+        }
+      ]
+    },
+    "AccessGrant": {
+      "stateEnum": "AccessGrantStatus",
+      "transitionEnum": "AccessGrantTransitionKind",
+      "initialStates": ["pending"],
+      "terminalStates": ["expired", "revoked", "denied"],
+      "edges": [
+        { "kind": "pending_to_active", "from": "pending", "to": "active" },
+        { "kind": "pending_to_revoked", "from": "pending", "to": "revoked" },
+        { "kind": "pending_to_expired", "from": "pending", "to": "expired" },
+        { "kind": "pending_to_denied", "from": "pending", "to": "denied" },
+        { "kind": "active_to_revoked", "from": "active", "to": "revoked" },
+        { "kind": "active_to_expired", "from": "active", "to": "expired" }
+      ]
+    }
+  }
+}

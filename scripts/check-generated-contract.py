@@ -473,6 +473,48 @@ def check_schema_runtime(root: Path, findings: Findings) -> None:
                 findings.error(
                     f"{fixture.relative_to(root)} must be rejected by {schema_path.relative_to(root)}"
                 )
+
+    platform_schema_path = root / "contracts" / "platform" / "json-schema" / "contract.schema.json"
+    platform_records_path = root / "conformance" / "platform" / "records.json"
+    platform_schema = load_json(platform_schema_path)
+    platform_records = load_json(platform_records_path)
+    if isinstance(platform_schema, dict) and isinstance(platform_records, dict):
+        definitions = platform_schema.get("$defs")
+        fixtures = platform_records.get("valid")
+        if not isinstance(definitions, dict) or not isinstance(fixtures, list):
+            findings.error("platform schema or conformance fixture shape is invalid")
+        else:
+            seen_models: set[str] = set()
+            expected_models = {
+                name
+                for name, definition in definitions.items()
+                if isinstance(definition, dict) and not isinstance(definition.get("enum"), list)
+            }
+            for fixture in fixtures:
+                if not isinstance(fixture, dict):
+                    findings.error("platform valid conformance fixture must be an object")
+                    continue
+                model = fixture.get("model")
+                instance = fixture.get("value")
+                if not isinstance(model, str) or model not in expected_models:
+                    findings.error(f"platform conformance fixture names unknown model {model!r}")
+                    continue
+                schema = {
+                    "$schema": platform_schema.get("$schema"),
+                    "$defs": definitions,
+                    "$ref": f"#/$defs/{model}",
+                }
+                errors = jsonschema_validate(instance, schema)
+                validated += 1
+                seen_models.add(model)
+                if errors:
+                    findings.error(f"platform valid fixture for {model} failed: {errors[0]}")
+            missing_models = expected_models - seen_models
+            if missing_models:
+                findings.error(
+                    "platform conformance has no positive fixture for: "
+                    + ", ".join(sorted(missing_models))
+                )
     findings.note(f"runtime JSON Schema checks exercised {validated} instance(s)")
 
 
