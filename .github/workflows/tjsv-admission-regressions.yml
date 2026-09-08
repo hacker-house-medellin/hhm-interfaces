@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: 22.16.0
       - name: Require fresh resident operations parity and recorded cases
-        uses: ORESoftware/typespec-json-schema-validator@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        uses: ORESoftware/typespec-json-schema-validator@1d03de4593e10e73dfff71e848c308b22c1785be
         with:
           typespec: contracts/resident-operations/v1/main.tsp
           schema: contracts/resident-operations/v1/authored.schema.json
@@ -36,7 +36,7 @@ jobs:
           output_dir: .typespec-json-schema-validator/regressions/generated
           max_probes: "64"
       - name: Require positive admission and seven canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@1d03de4593e10e73dfff71e848c308b22c1785be
         with:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           report: .typespec-json-schema-validator/regressions/report.json
