@@ -1,0 +1,82 @@
+name: Reusable resident operations Contract IR admission
+
+on:
+  workflow_call:
+    inputs:
+      consumer_repository:
+        description: Exact caller repository in owner/name form.
+        required: true
+        type: string
+      consumer_role:
+        description: Stable role name for the consuming runtime or projection.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Validate caller identity and role
+        env:
+          DECLARED_REPOSITORY: ${{ inputs.consumer_repository }}
+          CONSUMER_ROLE: ${{ inputs.consumer_role }}
+        run: |
+          set -euo pipefail
+          test "$DECLARED_REPOSITORY" = "$GITHUB_REPOSITORY"
+          test -n "$CONSUMER_ROLE"
+          case "$CONSUMER_ROLE" in
+            *[!a-z0-9-]*) echo "consumer_role must be lowercase kebab-case" >&2; exit 1 ;;
+          esac
+      - name: Check out immutable resident-operations authorities
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: hacker-house-medellin/hhm-interfaces
+          ref: a20316e3f55133b28bf9e2258c5d2bddcd698253
+          path: .contract-cache/hhm-interfaces
+          persist-credentials: false
+          show-progress: false
+      - name: Verify authority commit and source blobs
+        run: |
+          set -euo pipefail
+          root=.contract-cache/hhm-interfaces
+          test "$(git -C "$root" rev-parse HEAD)" = "a20316e3f55133b28bf9e2258c5d2bddcd698253"
+          test "$(git -C "$root" hash-object -- contracts/resident-operations/v1/main.tsp)" = "70bb68d8986b767b37031fbcc160cac993961131"
+          test "$(git -C "$root" hash-object -- contracts/resident-operations/v1/authored.schema.json)" = "29bc44be72570f44ab1d6e347c95f10033522975"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.16.0
+      - name: Reproduce parity and Contract IR from independent authorities
+        uses: ORESoftware/typespec-json-schema-validator@1d03de4593e10e73dfff71e848c308b22c1785be
+        with:
+          typespec: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/main.tsp
+          schema: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/authored.schema.json
+          instances: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/instances
+          report: .typespec-json-schema-validator/resident-operations/report.json
+          contract_ir: .typespec-json-schema-validator/resident-operations/contract-ir.json
+          output_dir: .typespec-json-schema-validator/resident-operations/generated
+          max_probes: "64"
+      - name: Require exact current-input admission and seven refusals
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@1d03de4593e10e73dfff71e848c308b22c1785be
+        with:
+          contract_ir: .typespec-json-schema-validator/resident-operations/contract-ir.json
+          report: .typespec-json-schema-validator/resident-operations/report.json
+          typespec: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/main.tsp
+          schema: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/authored.schema.json
+          generated_schema: .typespec-json-schema-validator/resident-operations/generated/typespec.generated.schema.json
+          expected_declarations: '["HHaus.ResidentOperations.V1.ActorRole","HHaus.ResidentOperations.V1.GuestVisitStatus","HHaus.ResidentOperations.V1.ResourceKind","HHaus.ResidentOperations.V1.ReservationStatus","HHaus.ResidentOperations.V1.MealPlanStatus","HHaus.ResidentOperations.V1.PollStatus","HHaus.ResidentOperations.V1.VoteVisibility","HHaus.ResidentOperations.V1.InvoiceStatus","HHaus.ResidentOperations.V1.PaymentStatus","HHaus.ResidentOperations.V1.AgreementAcceptanceStatus","HHaus.ResidentOperations.V1.SyncStore","HHaus.ResidentOperations.V1.SyncStatus","HHaus.ResidentOperations.V1.AssignmentStatus","HHaus.ResidentOperations.V1.ChatGroupKind","HHaus.ResidentOperations.V1.AccessGrantStatus","HHaus.ResidentOperations.V1.GuestVisit","HHaus.ResidentOperations.V1.ResourceReservation","HHaus.ResidentOperations.V1.MealPlan","HHaus.ResidentOperations.V1.PollOption","HHaus.ResidentOperations.V1.CommunityPoll","HHaus.ResidentOperations.V1.PollVote","HHaus.ResidentOperations.V1.RentInvoice","HHaus.ResidentOperations.V1.PaymentRecord","HHaus.ResidentOperations.V1.AgreementAcceptance","HHaus.ResidentOperations.V1.OnboardingCheckpoint","HHaus.ResidentOperations.V1.PersistenceReceipt","HHaus.ResidentOperations.V1.AssignmentRequest","HHaus.ResidentOperations.V1.AssignmentDecision","HHaus.ResidentOperations.V1.AssignmentResult","HHaus.ResidentOperations.V1.ChatGroupReference","HHaus.ResidentOperations.V1.DeveloperAccessGrant","HHaus.ResidentOperations.V1.ResidentOperationsEvent"]'
+          verification: .typespec-json-schema-validator/resident-operations/verification.json
+      - name: Preserve independent authority source files
+        run: git -C .contract-cache/hhm-interfaces diff --exit-code -- contracts/resident-operations/v1/
+      - name: Retain admission evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: resident-contract-${{ inputs.consumer_role }}-${{ github.run_id }}
+          path: .typespec-json-schema-validator/resident-operations/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
