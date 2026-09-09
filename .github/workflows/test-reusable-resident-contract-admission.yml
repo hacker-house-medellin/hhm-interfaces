@@ -1,0 +1,23 @@
+name: Test reusable resident Contract IR admission
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/reusable-resident-contract-admission.yml"
+      - ".github/workflows/test-reusable-resident-contract-admission.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/reusable-resident-contract-admission.yml"
+      - ".github/workflows/test-reusable-resident-contract-admission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-admission-smoke:
+    uses: ./.github/workflows/reusable-resident-contract-admission.yml
+    with:
+      consumer_repository: ${{ github.repository }}
+      consumer_role: interface-authority-smoke
