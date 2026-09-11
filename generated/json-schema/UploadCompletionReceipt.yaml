@@ -1,0 +1,17 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: UploadCompletionReceipt.yaml
+type: object
+properties:
+  uploadId:
+    $ref: "#/$defs/Uuid"
+  status:
+    type: string
+    const: verified
+required:
+  - uploadId
+  - status
+$defs:
+  Uuid:
+    type: string
+    format: uuid
+    description: A UUID formatted identifier.

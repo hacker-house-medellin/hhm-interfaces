@@ -1,0 +1,695 @@
+openapi: 3.1.0
+info:
+  title: HHaus intake API
+  version: 1.0.0
+  summary: Public and authenticated residency intake for HHaus.
+  contact:
+    name: HHaus
+    url: https://hhaus.org
+  license:
+    name: Proprietary intake contract
+tags: []
+paths:
+  /v1/applications:
+    post:
+      operationId: Applications_create
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            $ref: '#/components/schemas/IdempotencyKey'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionReceipt'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+  /v1/intake/uploads:
+    post:
+      operationId: IntakeUploads_create
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            $ref: '#/components/schemas/IdempotencyKey'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadIntentReceipt'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadIntentCreate'
+  /v1/intake/uploads/{uploadId}/complete:
+    post:
+      operationId: IntakeUploads_complete
+      parameters:
+        - name: uploadId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadCompletionReceipt'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadCompleteCreate'
+  /v1/pre-interests:
+    post:
+      operationId: PreInterests_create
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            $ref: '#/components/schemas/IdempotencyKey'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionReceipt'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreInterestCreate'
+  /v1/referrals:
+    post:
+      operationId: Referrals_create
+      description: Requires a verified Shared Auth user bearer token. The referrer subject is derived from that token.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            $ref: '#/components/schemas/IdempotencyKey'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionReceipt'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReferralCreate'
+      security:
+        - BearerAuth: []
+components:
+  schemas:
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+        - retryable
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 64
+        message:
+          type: string
+          minLength: 2
+          maxLength: 500
+        retryable:
+          type: boolean
+        submissionId:
+          $ref: '#/components/schemas/Uuid'
+    ApplicationCreate:
+      type: object
+      required:
+        - email
+        - linkedinUrl
+        - legalName
+        - dateOfBirth
+        - nationality
+        - phone
+        - currentCity
+        - entrepreneurshipIdea
+        - projectStage
+        - stayPreference
+        - preferredStartMonth
+        - communityContribution
+        - noiseSensitivity
+        - lightSensitivity
+        - roommatePreference
+        - preferredRoomOccupancy
+        - roommateForLowerCost
+        - roommateForSocialConnection
+        - accommodationDataConsent
+        - resumeUploadId
+        - photoIdUploadId
+        - ageAndIdentityAttestation
+        - privacyNoticeVersion
+      properties:
+        email:
+          $ref: '#/components/schemas/EmailAddress'
+        linkedinUrl:
+          $ref: '#/components/schemas/LinkedInUrl'
+        legalName:
+          type: string
+          minLength: 2
+          maxLength: 200
+        dateOfBirth:
+          type: string
+          format: date
+          description: Used only for age eligibility review and subject to the intake retention policy.
+        nationality:
+          type: string
+          minLength: 2
+          maxLength: 120
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 32
+        currentCity:
+          type: string
+          minLength: 2
+          maxLength: 160
+        githubUrl:
+          type: string
+          format: uri
+        portfolioUrl:
+          type: string
+          format: uri
+        entrepreneurshipIdea:
+          type: string
+          minLength: 80
+          maxLength: 8000
+        projectStage:
+          $ref: '#/components/schemas/ProjectStage'
+        stayPreference:
+          $ref: '#/components/schemas/StayPreference'
+        preferredStartMonth:
+          type: string
+          format: date
+        communityContribution:
+          type: string
+          minLength: 40
+          maxLength: 4000
+        accessibilityOrAccommodationNotes:
+          type: string
+          maxLength: 4000
+        allergyNotes:
+          type: string
+          maxLength: 2000
+          description: Optional applicant-reported allergy information used only for accommodation and room placement. Do not use for admission scoring.
+        noiseSensitivity:
+          $ref: '#/components/schemas/SensitivityLevel'
+        lightSensitivity:
+          $ref: '#/components/schemas/SensitivityLevel'
+        roomPreferenceNotes:
+          type: string
+          maxLength: 2000
+          description: Optional preferences about room location, environment, or layout.
+        roommatePreference:
+          $ref: '#/components/schemas/RoommatePreference'
+        preferredRoomOccupancy:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 3
+          description: Preferred total number of beds/occupants in the room. HHaus rooms may contain up to three beds.
+        roommateForLowerCost:
+          type: boolean
+          description: Whether a shared room is desired partly to reduce the price of the stay.
+        roommateForSocialConnection:
+          type: boolean
+          description: Whether a shared room is desired partly for more social connection.
+        accommodationDataConsent:
+          type: boolean
+          enum:
+            - true
+          description: The applicant explicitly consents to HHaus processing allergy, sensory, accommodation, and room-preference answers only for accommodation and placement planning.
+        resumeUploadId:
+          $ref: '#/components/schemas/Uuid'
+        photoIdUploadId:
+          $ref: '#/components/schemas/Uuid'
+        ageAndIdentityAttestation:
+          type: boolean
+          enum:
+            - true
+          description: The applicant attests that they are at least 18 and the submitted identity document is theirs.
+        privacyNoticeVersion:
+          type: string
+          minLength: 1
+          maxLength: 64
+        turnstileToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+    ApplicationStatus:
+      type: string
+      enum:
+        - submitted
+        - under_review
+        - needs_information
+        - interview
+        - accepted
+        - waitlisted
+        - declined
+        - withdrawn
+    EmailAddress:
+      type: string
+      minLength: 3
+      maxLength: 320
+      format: email
+      description: A stable lower-case email address. The server normalizes the domain and preserves the local part.
+    IdempotencyKey:
+      type: string
+      minLength: 16
+      maxLength: 128
+      description: A client-generated idempotency key. Reusing it with a different body is rejected.
+    LinkedInUrl:
+      type: string
+      minLength: 20
+      maxLength: 500
+      format: uri
+      description: An HTTPS LinkedIn profile URL. Redirectors and credential-bearing URLs are rejected.
+    MirrorStatus:
+      type: string
+      enum:
+        - pending
+        - mirrored
+        - retryable_failure
+        - terminal_failure
+    PreInterestCreate:
+      type: object
+      required:
+        - email
+        - linkedinUrl
+        - entrepreneurshipIdea
+        - stayPreference
+        - privacyNoticeVersion
+      properties:
+        email:
+          $ref: '#/components/schemas/EmailAddress'
+        linkedinUrl:
+          $ref: '#/components/schemas/LinkedInUrl'
+        entrepreneurshipIdea:
+          type: string
+          minLength: 40
+          maxLength: 4000
+        stayPreference:
+          $ref: '#/components/schemas/StayPreference'
+        privacyNoticeVersion:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: The versioned privacy notice the applicant affirmatively accepted.
+        turnstileToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: An anti-automation proof required for anonymous submissions. An authenticated Shared Auth subject may omit it. It is never persisted.
+    ProjectStage:
+      type: string
+      enum:
+        - idea
+        - prototype
+        - early_revenue
+        - growing
+        - nonprofit_or_open_source
+    ReferralCreate:
+      type: object
+      required:
+        - refereeName
+        - refereeEmail
+        - refereeLinkedinUrl
+        - relationship
+        - rationale
+        - nomineeConsentConfirmed
+      properties:
+        refereeName:
+          type: string
+          minLength: 2
+          maxLength: 200
+        refereeEmail:
+          $ref: '#/components/schemas/EmailAddress'
+        refereeLinkedinUrl:
+          $ref: '#/components/schemas/LinkedInUrl'
+        relationship:
+          type: string
+          minLength: 2
+          maxLength: 120
+        rationale:
+          type: string
+          minLength: 40
+          maxLength: 4000
+        stayPreference:
+          $ref: '#/components/schemas/StayPreference'
+        nomineeConsentConfirmed:
+          type: boolean
+          enum:
+            - true
+          description: The referrer confirms the nominee has agreed to be referred and contacted.
+    ReferralStatus:
+      type: string
+      enum:
+        - submitted
+        - invited
+        - applied
+        - accepted
+        - declined
+    RoommatePreference:
+      type: string
+      enum:
+        - private_room
+        - open_to_roommates
+        - prefer_roommates
+        - flexible
+      description: Whether the applicant wants a private room or is open to sharing with one or two roommates.
+    SensitivityLevel:
+      type: string
+      enum:
+        - none
+        - low
+        - moderate
+        - high
+        - prefer_not_to_say
+      description: Applicant-reported sensitivity used only for room placement and accommodation planning.
+    SharedAuthSubject:
+      type: string
+      minLength: 8
+      maxLength: 255
+      description: An opaque Shared Auth subject. It is always derived from a verified session, never accepted from a form body.
+    StayPreference:
+      type: string
+      enum:
+        - three_months
+        - six_months
+    SubmissionReceipt:
+      type: object
+      required:
+        - submissionId
+        - kind
+        - acceptedAt
+        - primaryPersistence
+        - supabasePersistence
+      properties:
+        submissionId:
+          $ref: '#/components/schemas/Uuid'
+        kind:
+          type: string
+          enum:
+            - pre_interest
+            - application
+            - referral
+        acceptedAt:
+          type: string
+          format: date-time
+        primaryPersistence:
+          type: string
+          enum:
+            - stored
+        supabasePersistence:
+          type: string
+          enum:
+            - stored
+    UploadCompleteCreate:
+      type: object
+      required:
+        - sha256
+      properties:
+        sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Lower-case hexadecimal SHA-256 digest of the exact bytes uploaded to Supabase Storage.
+        turnstileToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+    UploadCompletionReceipt:
+      type: object
+      required:
+        - uploadId
+        - status
+      properties:
+        uploadId:
+          $ref: '#/components/schemas/Uuid'
+        status:
+          type: string
+          enum:
+            - verified
+    UploadIntentCreate:
+      type: object
+      required:
+        - kind
+        - fileName
+        - contentType
+        - sizeBytes
+        - sha256
+      properties:
+        kind:
+          $ref: '#/components/schemas/UploadKind'
+        fileName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        contentType:
+          type: string
+          minLength: 3
+          maxLength: 128
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10485760
+        sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Lower-case hexadecimal SHA-256 digest of the exact upload bytes.
+        turnstileToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+    UploadIntentReceipt:
+      type: object
+      required:
+        - uploadId
+        - kind
+        - uploadUrl
+        - expiresAt
+        - maximumBytes
+        - allowedContentTypes
+      properties:
+        uploadId:
+          $ref: '#/components/schemas/Uuid'
+        kind:
+          $ref: '#/components/schemas/UploadKind'
+        uploadUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        maximumBytes:
+          type: integer
+          format: int64
+        allowedContentTypes:
+          type: array
+          items:
+            type: string
+    UploadKind:
+      type: string
+      enum:
+        - resume
+        - photo_id
+    UploadStatus:
+      type: string
+      enum:
+        - pending
+        - uploaded
+        - verified
+        - quarantined
+        - expired
+        - deleted
+    UserPointsAccount:
+      type: object
+      required:
+        - subject
+        - balance
+        - lifetimeEarned
+        - lifetimeRedeemed
+        - version
+        - updatedAt
+      properties:
+        subject:
+          $ref: '#/components/schemas/SharedAuthSubject'
+        balance:
+          type: integer
+          format: int64
+        lifetimeEarned:
+          type: integer
+          format: int64
+        lifetimeRedeemed:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: int64
+        updatedAt:
+          type: string
+          format: date-time
+    UserPointsLedgerEntry:
+      type: object
+      required:
+        - entryId
+        - subject
+        - delta
+        - reasonCode
+        - occurredAt
+      properties:
+        entryId:
+          $ref: '#/components/schemas/Uuid'
+        subject:
+          $ref: '#/components/schemas/SharedAuthSubject'
+        delta:
+          type: integer
+          format: int64
+        reasonCode:
+          type: string
+          minLength: 2
+          maxLength: 64
+        sourceSubmissionId:
+          $ref: '#/components/schemas/Uuid'
+        occurredAt:
+          type: string
+          format: date-time
+    Uuid:
+      type: string
+      format: uuid
+      description: A UUID formatted identifier.
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: Bearer
+servers:
+  - url: https://api.hhaus.org
+    description: HHaus production API
+    variables: {}

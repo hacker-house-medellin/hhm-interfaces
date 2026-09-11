@@ -1,0 +1,25 @@
+{
+  "name": "@hhaus/intake-interfaces",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:intake": "tsp compile typespec/main.tsp --output-dir generated",
+    "check:intake": "npm run generate:intake && git diff --exit-code -- generated",
+    "check:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs check --config contracts/platform/contracts.config.json",
+    "generate:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs generate --config contracts/platform/contracts.config.json",
+    "test:platform": "node --test tests/platform-contracts.test.mjs tests/platform-protobuf.test.mjs",
+    "verify:platform": "npm run generate:platform && npm run test:platform && git diff --exit-code -- generated/platform"
+  },
+  "devDependencies": {
+    "@oresoftware/ores-contracts": "https://codeload.github.com/ORESoftware/ores-contracts/tar.gz/7bf6b72ea433a0b9d9ef5a6e164b2a322bfedc1e",
+    "@typespec/compiler": "1.15.0",
+    "@typespec/http": "1.15.0",
+    "@typespec/json-schema": "1.15.0",
+    "@typespec/openapi": "1.15.0",
+    "@typespec/openapi3": "1.15.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "protobufjs": "8.8.0"
+  }
+}

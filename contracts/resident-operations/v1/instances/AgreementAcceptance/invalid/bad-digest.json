@@ -1,0 +1,14 @@
+{
+  "acceptanceId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  "tenantId": "22222222-2222-4222-8222-222222222222",
+  "subject": "shared-auth|resident-001",
+  "agreementType": "resident_membership_terms",
+  "agreementVersion": "2026-09-06",
+  "documentSha256": "not-a-digest",
+  "locale": "en-US",
+  "status": "accepted",
+  "startedAt": "2026-09-06T10:00:00Z",
+  "acceptedAt": "2026-09-06T10:05:00Z",
+  "serverReceiptId": "12121212-1212-4212-8212-121212121212",
+  "revision": 1
+}

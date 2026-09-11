@@ -1,0 +1,51 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: ReferralCreate.yaml
+type: object
+properties:
+  refereeName:
+    type: string
+    minLength: 2
+    maxLength: 200
+  refereeEmail:
+    $ref: "#/$defs/EmailAddress"
+  refereeLinkedinUrl:
+    $ref: "#/$defs/LinkedInUrl"
+  relationship:
+    type: string
+    minLength: 2
+    maxLength: 120
+  rationale:
+    type: string
+    minLength: 40
+    maxLength: 4000
+  stayPreference:
+    $ref: "#/$defs/StayPreference"
+  nomineeConsentConfirmed:
+    type: boolean
+    const: true
+    description: The referrer confirms the nominee has agreed to be referred and contacted.
+required:
+  - refereeName
+  - refereeEmail
+  - refereeLinkedinUrl
+  - relationship
+  - rationale
+  - nomineeConsentConfirmed
+$defs:
+  EmailAddress:
+    type: string
+    minLength: 3
+    maxLength: 320
+    format: email
+    description: A stable lower-case email address. The server normalizes the domain and preserves the local part.
+  LinkedInUrl:
+    type: string
+    minLength: 20
+    maxLength: 500
+    format: uri
+    description: An HTTPS LinkedIn profile URL. Redirectors and credential-bearing URLs are rejected.
+  StayPreference:
+    type: string
+    enum:
+      - three_months
+      - six_months

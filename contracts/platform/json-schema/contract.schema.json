@@ -1,0 +1,996 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hhaus.org/contracts/platform/v1/contract.schema.json",
+  "title": "H/HAUS platform persistence contract v1",
+  "x-ores-namespace": "Hhaus.Platform.V1",
+  "$defs": {
+    "OrganizationStatus": {
+      "type": "string",
+      "enum": ["pending", "active", "suspended", "closed"]
+    },
+    "AccountKind": {
+      "type": "string",
+      "enum": ["individual", "organization_member", "service"]
+    },
+    "AccountStatus": {
+      "type": "string",
+      "enum": ["pending", "active", "suspended", "closed"]
+    },
+    "SpaceKind": {
+      "type": "string",
+      "enum": [
+        "bedroom",
+        "bed",
+        "desk",
+        "meeting_room",
+        "common_area",
+        "entrance",
+        "storage",
+        "parking"
+      ]
+    },
+    "ReservationStatus": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "held",
+        "confirmed",
+        "checked_in",
+        "checked_out",
+        "completed",
+        "cancelled",
+        "expired",
+        "no_show"
+      ]
+    },
+    "ReservationTransitionKind": {
+      "type": "string",
+      "enum": [
+        "requested_to_held",
+        "requested_to_confirmed",
+        "requested_to_cancelled",
+        "held_to_confirmed",
+        "held_to_cancelled",
+        "held_to_expired",
+        "confirmed_to_checked_in",
+        "confirmed_to_cancelled",
+        "confirmed_to_no_show",
+        "checked_in_to_checked_out",
+        "checked_out_to_completed"
+      ]
+    },
+    "GuestPassStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "issued",
+        "checked_in",
+        "checked_out",
+        "revoked",
+        "expired",
+        "cancelled"
+      ]
+    },
+    "GuestPassTransitionKind": {
+      "type": "string",
+      "enum": [
+        "planned_to_issued",
+        "planned_to_cancelled",
+        "issued_to_checked_in",
+        "issued_to_revoked",
+        "issued_to_expired",
+        "issued_to_cancelled",
+        "checked_in_to_checked_out",
+        "checked_in_to_revoked"
+      ]
+    },
+    "VisitStatus": {
+      "type": "string",
+      "enum": ["expected", "checked_in", "checked_out", "denied", "cancelled"]
+    },
+    "VisitTransitionKind": {
+      "type": "string",
+      "enum": [
+        "expected_to_checked_in",
+        "expected_to_denied",
+        "expected_to_cancelled",
+        "checked_in_to_checked_out"
+      ]
+    },
+    "AccessGrantStatus": {
+      "type": "string",
+      "enum": ["pending", "active", "expired", "revoked", "denied"]
+    },
+    "AccessGrantTransitionKind": {
+      "type": "string",
+      "enum": [
+        "pending_to_active",
+        "pending_to_revoked",
+        "pending_to_expired",
+        "pending_to_denied",
+        "active_to_revoked",
+        "active_to_expired"
+      ]
+    },
+    "AccessDecisionOutcome": {
+      "type": "string",
+      "enum": ["allowed", "denied"]
+    },
+    "AccessDecisionReason": {
+      "type": "string",
+      "enum": [
+        "matching_active_grant",
+        "no_matching_grant",
+        "grant_not_active",
+        "outside_validity_window",
+        "space_mismatch",
+        "principal_mismatch",
+        "membership_denied",
+        "identity_unavailable",
+        "policy_unavailable",
+        "evidence_invalid",
+        "replayed",
+        "rate_limited"
+      ]
+    },
+    "NetworkCredentialStatus": {
+      "type": "string",
+      "enum": ["pending", "active", "expired", "revoked"]
+    },
+    "MaintenancePriority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "urgent"]
+    },
+    "MaintenanceStatus": {
+      "type": "string",
+      "enum": ["open", "acknowledged", "in_progress", "resolved", "cancelled"]
+    },
+    "HousekeepingStatus": {
+      "type": "string",
+      "enum": ["scheduled", "in_progress", "completed", "skipped", "cancelled"]
+    },
+    "SecurityObservationKind": {
+      "type": "string",
+      "enum": [
+        "access_attempt",
+        "door_held_open",
+        "occupancy_anomaly",
+        "camera_alert",
+        "network_anomaly",
+        "safety_alert"
+      ]
+    },
+    "SecurityDisposition": {
+      "type": "string",
+      "enum": ["unreviewed", "benign", "escalated", "resolved", "dismissed"]
+    },
+    "Location": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_locations",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "slug"]],
+      "required": [
+        "id",
+        "tenantId",
+        "slug",
+        "displayName",
+        "city",
+        "countryCode",
+        "timeZone",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "slug": { "type": "string", "maxLength": 80 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "city": { "type": "string", "maxLength": 120 },
+        "countryCode": { "type": "string", "maxLength": 2 },
+        "timeZone": { "type": "string", "maxLength": 64 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_organizations",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId"], ["slug"]],
+      "x-ores-indexes": [["status"]],
+      "required": [
+        "id",
+        "tenantId",
+        "slug",
+        "displayName",
+        "status",
+        "seatLimit",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": { "type": "string", "maxLength": 128 },
+        "slug": { "type": "string", "maxLength": 80 },
+        "displayName": { "type": "string", "maxLength": 160 },
+        "status": { "$ref": "#/$defs/OrganizationStatus" },
+        "seatLimit": { "type": "integer", "x-ores-width": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Account": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_accounts",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "authSubject"]],
+      "x-ores-indexes": [["tenantId", "organizationId", "status"]],
+      "required": [
+        "id",
+        "tenantId",
+        "authSubject",
+        "kind",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "authSubject": { "type": "string", "maxLength": 255 },
+        "kind": { "$ref": "#/$defs/AccountKind" },
+        "status": { "$ref": "#/$defs/AccountStatus" },
+        "organizationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Organization.id"
+        },
+        "displayName": { "type": "string", "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Space": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_bookable_spaces",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "locationId", "code"]],
+      "x-ores-indexes": [["tenantId", "locationId", "kind", "active"]],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "code",
+        "displayName",
+        "kind",
+        "capacity",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "code": { "type": "string", "maxLength": 64 },
+        "displayName": { "type": "string", "maxLength": 160 },
+        "kind": { "$ref": "#/$defs/SpaceKind" },
+        "capacity": { "type": "integer", "x-ores-width": 32 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Reservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_space_reservations",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "idempotencyKey"]],
+      "x-ores-indexes": [
+        ["tenantId", "spaceId", "startsAt", "endsAt"],
+        ["tenantId", "bookedByAccountId", "status"],
+        ["tenantId", "organizationId", "status"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "spaceId",
+        "bookedByAccountId",
+        "status",
+        "startsAt",
+        "endsAt",
+        "occupantCount",
+        "guestCount",
+        "idempotencyKey",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "spaceId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Space.id"
+        },
+        "bookedByAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "organizationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Organization.id"
+        },
+        "status": { "$ref": "#/$defs/ReservationStatus" },
+        "startsAt": { "type": "string", "format": "date-time" },
+        "endsAt": { "type": "string", "format": "date-time" },
+        "occupantCount": { "type": "integer", "x-ores-width": 32 },
+        "guestCount": { "type": "integer", "x-ores-width": 32 },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "version": { "type": "integer", "x-ores-width": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ReservationTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_reservation_transitions",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "idempotencyKey"]],
+      "x-ores-indexes": [["tenantId", "reservationId", "occurredAt"]],
+      "required": [
+        "id",
+        "tenantId",
+        "reservationId",
+        "kind",
+        "expectedVersion",
+        "actorAccountId",
+        "idempotencyKey",
+        "reasonCode",
+        "occurredAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "reservationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Reservation.id"
+        },
+        "kind": { "$ref": "#/$defs/ReservationTransitionKind" },
+        "expectedVersion": { "type": "integer", "x-ores-width": 64 },
+        "actorAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "reasonCode": { "type": "string", "maxLength": 64 },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GuestPass": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_guest_passes",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "reservationId", "guestReference"]],
+      "x-ores-indexes": [["tenantId", "reservationId", "status"]],
+      "required": [
+        "id",
+        "tenantId",
+        "reservationId",
+        "issuedByAccountId",
+        "guestReference",
+        "status",
+        "validFrom",
+        "validUntil",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "reservationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Reservation.id"
+        },
+        "issuedByAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "guestReference": { "type": "string", "maxLength": 128 },
+        "guestDisplayName": { "type": "string", "maxLength": 160 },
+        "guestContactDigest": { "type": "string", "maxLength": 128 },
+        "status": { "$ref": "#/$defs/GuestPassStatus" },
+        "validFrom": { "type": "string", "format": "date-time" },
+        "validUntil": { "type": "string", "format": "date-time" },
+        "credentialReferenceDigest": { "type": "string", "maxLength": 128 },
+        "version": { "type": "integer", "x-ores-width": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GuestPassTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_guest_pass_transitions",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "idempotencyKey"]],
+      "x-ores-indexes": [["tenantId", "guestPassId", "occurredAt"]],
+      "required": [
+        "id",
+        "tenantId",
+        "guestPassId",
+        "kind",
+        "expectedVersion",
+        "actorAccountId",
+        "idempotencyKey",
+        "reasonCode",
+        "occurredAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "guestPassId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "GuestPass.id"
+        },
+        "kind": { "$ref": "#/$defs/GuestPassTransitionKind" },
+        "expectedVersion": { "type": "integer", "x-ores-width": 64 },
+        "actorAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "reasonCode": { "type": "string", "maxLength": 64 },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Visit": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_visits",
+      "x-ores-primary-key": ["id"],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "status", "expectedAt"],
+        ["tenantId", "guestPassId", "status"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "status",
+        "verificationMethod",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "reservationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Reservation.id"
+        },
+        "guestPassId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "GuestPass.id"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "status": { "$ref": "#/$defs/VisitStatus" },
+        "expectedAt": { "type": "string", "format": "date-time" },
+        "checkedInAt": { "type": "string", "format": "date-time" },
+        "checkedOutAt": { "type": "string", "format": "date-time" },
+        "verificationMethod": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "VisitTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_visit_transitions",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "idempotencyKey"]],
+      "x-ores-indexes": [["tenantId", "visitId", "occurredAt"]],
+      "required": [
+        "id",
+        "tenantId",
+        "visitId",
+        "kind",
+        "expectedVersion",
+        "actorAccountId",
+        "idempotencyKey",
+        "reasonCode",
+        "occurredAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "visitId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Visit.id"
+        },
+        "kind": { "$ref": "#/$defs/VisitTransitionKind" },
+        "expectedVersion": { "type": "integer", "x-ores-width": 64 },
+        "actorAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "reasonCode": { "type": "string", "maxLength": 64 },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AccessGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_access_grants",
+      "x-ores-primary-key": ["id"],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "status", "validUntil"],
+        ["tenantId", "accountId", "status"],
+        ["tenantId", "guestPassId", "status"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "spaceId",
+        "status",
+        "validFrom",
+        "validUntil",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "spaceId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Space.id"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "guestPassId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "GuestPass.id"
+        },
+        "reservationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Reservation.id"
+        },
+        "status": { "$ref": "#/$defs/AccessGrantStatus" },
+        "validFrom": { "type": "string", "format": "date-time" },
+        "validUntil": { "type": "string", "format": "date-time" },
+        "providerReferenceDigest": { "type": "string", "maxLength": 128 },
+        "version": { "type": "integer", "x-ores-width": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AccessGrantTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_access_grant_transitions",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "idempotencyKey"]],
+      "x-ores-indexes": [["tenantId", "accessGrantId", "occurredAt"]],
+      "required": [
+        "id",
+        "tenantId",
+        "accessGrantId",
+        "kind",
+        "expectedVersion",
+        "actorAccountId",
+        "idempotencyKey",
+        "reasonCode",
+        "occurredAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "accessGrantId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "AccessGrant.id"
+        },
+        "kind": { "$ref": "#/$defs/AccessGrantTransitionKind" },
+        "expectedVersion": { "type": "integer", "x-ores-width": 64 },
+        "actorAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "reasonCode": { "type": "string", "maxLength": 64 },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AccessDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_access_decisions",
+      "x-ores-primary-key": ["id"],
+      "x-ores-unique": [["tenantId", "requestId"]],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "spaceId", "occurredAt"],
+        ["tenantId", "accountId", "occurredAt"],
+        ["tenantId", "guestPassId", "occurredAt"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "spaceId",
+        "outcome",
+        "reason",
+        "evidenceDigestSha256",
+        "policyVersion",
+        "requestId",
+        "occurredAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "spaceId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Space.id"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "guestPassId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "GuestPass.id"
+        },
+        "accessGrantId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "AccessGrant.id"
+        },
+        "outcome": { "$ref": "#/$defs/AccessDecisionOutcome" },
+        "reason": { "$ref": "#/$defs/AccessDecisionReason" },
+        "evidenceDigestSha256": { "type": "string", "maxLength": 64 },
+        "policyVersion": { "type": "string", "maxLength": 64 },
+        "requestId": { "type": "string", "maxLength": 128 },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "NetworkCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_network_credentials",
+      "x-ores-primary-key": ["id"],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "status", "validUntil"],
+        ["tenantId", "accountId", "status"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "accountId",
+        "status",
+        "profileName",
+        "providerReferenceDigest",
+        "validFrom",
+        "validUntil",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "reservationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Reservation.id"
+        },
+        "status": { "$ref": "#/$defs/NetworkCredentialStatus" },
+        "profileName": { "type": "string", "maxLength": 64 },
+        "providerReferenceDigest": { "type": "string", "maxLength": 128 },
+        "validFrom": { "type": "string", "format": "date-time" },
+        "validUntil": { "type": "string", "format": "date-time" },
+        "version": { "type": "integer", "x-ores-width": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "MaintenanceTicket": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_maintenance_tickets",
+      "x-ores-primary-key": ["id"],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "status", "priority"],
+        ["tenantId", "assignedToAccountId", "status"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "reportedByAccountId",
+        "priority",
+        "status",
+        "summary",
+        "openedAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "spaceId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Space.id"
+        },
+        "reportedByAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "assignedToAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "priority": { "$ref": "#/$defs/MaintenancePriority" },
+        "status": { "$ref": "#/$defs/MaintenanceStatus" },
+        "summary": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "openedAt": { "type": "string", "format": "date-time" },
+        "resolvedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "HousekeepingTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_housekeeping_tasks",
+      "x-ores-primary-key": ["id"],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "status", "scheduledFrom"],
+        ["tenantId", "assignedToAccountId", "status"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "spaceId",
+        "status",
+        "scheduledFrom",
+        "scheduledUntil",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "spaceId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Space.id"
+        },
+        "reservationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Reservation.id"
+        },
+        "assignedToAccountId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Account.id"
+        },
+        "status": { "$ref": "#/$defs/HousekeepingStatus" },
+        "scheduledFrom": { "type": "string", "format": "date-time" },
+        "scheduledUntil": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "checklistSummary": { "type": "string", "maxLength": 2000 },
+        "version": { "type": "integer", "x-ores-width": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SecurityObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-ores-table": "hhm_security_observations",
+      "x-ores-primary-key": ["id"],
+      "x-ores-indexes": [
+        ["tenantId", "locationId", "disposition", "occurredAt"],
+        ["tenantId", "kind", "occurredAt"]
+      ],
+      "required": [
+        "id",
+        "tenantId",
+        "locationId",
+        "kind",
+        "disposition",
+        "occurredAt",
+        "sensorReferenceDigest",
+        "containsSensitiveMedia",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "x-ores-references": "Organization.tenantId"
+        },
+        "locationId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Location.id"
+        },
+        "spaceId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Space.id"
+        },
+        "accessGrantId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "AccessGrant.id"
+        },
+        "visitId": {
+          "type": "string",
+          "format": "uuid",
+          "x-ores-references": "Visit.id"
+        },
+        "kind": { "$ref": "#/$defs/SecurityObservationKind" },
+        "disposition": { "$ref": "#/$defs/SecurityDisposition" },
+        "occurredAt": { "type": "string", "format": "date-time" },
+        "sensorReferenceDigest": { "type": "string", "maxLength": 128 },
+        "summary": { "type": "string", "maxLength": 512 },
+        "containsSensitiveMedia": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

@@ -27,6 +27,33 @@ def main() -> int:
         "schemas/p2p-json-records.json",
         "schemas/peer-session.json",
         "schemas/visitor-access.json",
+        "typespec/main.tsp",
+        "contracts/platform/contracts.config.json",
+        "contracts/platform/typespec/main.tsp",
+        "contracts/platform/json-schema/contract.schema.json",
+        "contracts/platform/protobuf/platform-events.proto",
+        "contracts/platform/state-machines.json",
+        "conformance/platform/records.json",
+        "generated/platform/sql/schema.sql",
+        "generated/platform/rust/types.rs",
+        "generated/platform/seaorm/entities.rs",
+        "generated/platform/diesel/schema.rs",
+        "generated/platform/typescript/types.d.ts",
+        "generated/platform/typescript/validate.mjs",
+        "generated/platform/dart/models.dart",
+        "runtime/platform.mjs",
+        "runtime/platform-json-schema.mjs",
+        "runtime/platform-protobuf.mjs",
+        "tests/platform-contracts.test.mjs",
+        "tests/platform-protobuf.test.mjs",
+        "tests/platform-rust-witness/Cargo.toml",
+        "docs/platform-contracts.md",
+        "generated/openapi/intake.openapi.yaml",
+        "generated/json-schema/ApplicationCreate.yaml",
+        "generated/json-schema/PreInterestCreate.yaml",
+        "generated/json-schema/ReferralCreate.yaml",
+        "generated/json-schema/UploadCompleteCreate.yaml",
+        "docs/intake-privacy-boundary.md",
         ".zpkg.toml",
         *metadata.get("required_paths", []),
     ]
@@ -173,7 +200,11 @@ def main() -> int:
         json.loads((ROOT / fixture_path).read_text(encoding="utf-8"))
 
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or path.stat().st_size > 1_000_000:
+        if (
+            not path.is_file()
+            or any(part in {".git", "node_modules", "target"} for part in path.parts)
+            or path.stat().st_size > 1_000_000
+        ):
             continue
         try:
             text = path.read_text(encoding="utf-8")
