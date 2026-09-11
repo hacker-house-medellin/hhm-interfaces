@@ -1,0 +1,21 @@
+{
+  "maps": [
+    "route-maps/api.route-map.json",
+    "route-maps/web.route-map.json",
+    "route-maps/mash.route-map.json",
+    "route-maps/leptos.route-map.json",
+    "route-maps/dioxus.route-map.json",
+    "route-maps/sync.route-map.json"
+  ],
+  "identical_to": [
+    "../hhm-lib-core/route-maps/api.route-map.json",
+    "../hhm-lib-core/route-maps/web.route-map.json",
+    "../hhm-lib-core/route-maps/mash.route-map.json",
+    "../hhm-lib-core/route-maps/leptos.route-map.json",
+    "../hhm-lib-core/route-maps/dioxus.route-map.json",
+    "../hhm-lib-core/route-maps/sync.route-map.json"
+  ],
+  "out": "generated",
+  "skip_source": true,
+  "skip_drift": true
+}
