@@ -46,7 +46,7 @@ jobs:
           contract_ir: .typespec-json-schema-validator/platform/contract-ir.json
           output_dir: .typespec-json-schema-validator/platform/generated
           max_probes: '64'
-          quiet: 'true'
+          quiet: 'false'
 
       - name: Require generated Schema B to remain comparison evidence
         run: |
