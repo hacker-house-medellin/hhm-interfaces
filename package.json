@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@oresoftware/ores-contracts": "https://codeload.github.com/ORESoftware/ores-contracts/tar.gz/7bf6b72ea433a0b9d9ef5a6e164b2a322bfedc1e",
-    "@typespec/compiler": "1.15.0",
+    "@typespec/compiler": "1.16.0",
     "@typespec/http": "1.15.0",
     "@typespec/json-schema": "1.15.0",
     "@typespec/openapi": "1.15.0",
