@@ -608,6 +608,11 @@ def run(argv: list[str] | None = None) -> int:
     parser.add_argument("--map", action="append", dest="maps", default=[])
     parser.add_argument("--source", action="append", dest="sources", default=[])
     parser.add_argument("--identical", action="append", dest="identical", default=[])
+    parser.add_argument(
+        "--skip-identical",
+        action="store_true",
+        help="skip downstream byte-twin comparison while validating a canonical authority change",
+    )
     parser.add_argument("--allow-docs-merge", action="store_true")
     parser.add_argument("--skip-source", action="store_true")
     parser.add_argument(
@@ -643,7 +648,9 @@ def run(argv: list[str] | None = None) -> int:
         map_paths.append(path)
 
     source_dirs = [resolve(root, p) for p in (args.sources or cfg.get("sources") or [])]
-    twins = [resolve(root, p) for p in (args.identical or cfg.get("identical_to") or [])]
+    twins = [] if args.skip_identical else [
+        resolve(root, p) for p in (args.identical or cfg.get("identical_to") or [])
+    ]
     allow_docs = args.allow_docs_merge or bool(cfg.get("allow_docs_merge"))
     skip_source = args.skip_source or bool(cfg.get("skip_source"))
 
