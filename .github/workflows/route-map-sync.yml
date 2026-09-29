@@ -8,27 +8,52 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: route-map-sync-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Check out interfaces
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check out exact interfaces candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: hhm-interfaces
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Check out lib-core sibling
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Verify exact candidate
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          python3 -m py_compile scripts/check-route-sync.py
+
+      - name: Validate canonical authority change
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check-route-sync.py --root . --skip-identical
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - name: Check out lib-core downstream twin
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-lib-core
           path: hhm-lib-core
           persist-credentials: false
-      - name: Set up Python 3.11
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: '3.11'
-      # No pip install: the checker and generator are standard library only, so
-      # CI and a developer laptop cannot reach different verdicts.
-      - name: Validate the route maps and the generated clients
-        working-directory: hhm-interfaces
-        run: python3 scripts/check-route-sync.py --root .
+
+      - name: Enforce published twin parity
+        if: github.event_name != 'pull_request'
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check-route-sync.py --root .
+          git diff --check
