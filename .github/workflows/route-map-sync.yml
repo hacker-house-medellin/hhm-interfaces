@@ -28,12 +28,12 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-lib-core
-          ref: 76f1f1720ebabf7c3b860bf6f092c5564e431f83
+          ref: 85a5c343710ab641959513e01e7fa6477b264b2a
           path: hhm-lib-core
           persist-credentials: false
       - name: Verify lib-core proposal identity
         working-directory: hhm-lib-core
-        run: test "$(git rev-parse HEAD)" = "76f1f1720ebabf7c3b860bf6f092c5564e431f83"
+        run: test "$(git rev-parse HEAD)" = "85a5c343710ab641959513e01e7fa6477b264b2a"
       - name: Set up Python 3.11
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
