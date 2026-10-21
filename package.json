@@ -20,6 +20,6 @@
     "@typespec/openapi3": "1.16.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
-    "protobufjs": "8.8.0"
+    "protobufjs": "8.8.1"
   }
 }
