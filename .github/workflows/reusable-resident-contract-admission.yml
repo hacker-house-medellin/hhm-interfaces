@@ -56,7 +56,7 @@ jobs:
           package-manager-cache: false
 
       - name: Reproduce parity and Contract IR from independent authorities
-        uses: ORESoftware/typespec-json-schema-validator@be8fa62e54d421ddbfcad8eedf0aaf94289b3ed7
+        uses: ORESoftware/typespec-json-schema-validator@7531318ecfcb5b10756946da4ca91c0176f9f18b
         with:
           typespec: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/main.tsp
           schema: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/authored.schema.json
@@ -69,7 +69,7 @@ jobs:
           quiet: 'true'
 
       - name: Require exact current-input admission and canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@be8fa62e54d421ddbfcad8eedf0aaf94289b3ed7
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@7531318ecfcb5b10756946da4ca91c0176f9f18b
         with:
           contract_ir: .typespec-json-schema-validator/resident-operations/contract-ir.json
           report: .typespec-json-schema-validator/resident-operations/report.json
