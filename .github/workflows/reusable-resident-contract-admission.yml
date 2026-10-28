@@ -56,7 +56,7 @@ jobs:
           package-manager-cache: false
 
       - name: Reproduce parity and Contract IR from independent authorities
-        uses: ORESoftware/typespec-json-schema-validator@7531318ecfcb5b10756946da4ca91c0176f9f18b
+        uses: ORESoftware/typespec-json-schema-validator@075b2e81f7d8e95ddd2a8792523996ececc61a43
         with:
           typespec: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/main.tsp
           schema: .contract-cache/hhm-interfaces/contracts/resident-operations/v1/authored.schema.json
@@ -69,7 +69,7 @@ jobs:
           quiet: 'true'
 
       - name: Require exact current-input admission and canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@7531318ecfcb5b10756946da4ca91c0176f9f18b
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@075b2e81f7d8e95ddd2a8792523996ececc61a43
         with:
           contract_ir: .typespec-json-schema-validator/resident-operations/contract-ir.json
           report: .typespec-json-schema-validator/resident-operations/report.json
@@ -87,7 +87,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: resident-contract-${{ inputs.consumer_role }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .typespec-json-schema-validator/resident-operations/
+          # Preserve the fail-closed npm audit receipt even when the validator
+          # refuses to generate Contract IR. A failed audit still fails the job.
+          path: |
+            .typespec-json-schema-validator/resident-operations/
+            ${{ runner.temp }}/tjsv-npm-audit-receipt.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
