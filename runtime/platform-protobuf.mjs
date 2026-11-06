@@ -17,7 +17,26 @@ const eventModels = Object.freeze({
 });
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const traceparent = /^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/i;
+const traceparent = /^00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/i;
+const maxAggregateVersion = 9_223_372_036_854_775_807n;
+
+function validTraceparent(value) {
+  const matched = traceparent.exec(value);
+  return matched !== null && !/^0{32}$/.test(matched[1]) && !/^0{16}$/.test(matched[2]);
+}
+
+function validRfc3339(value) {
+  if (typeof value !== "string") return false;
+  const matched = /^(\\d{4})-(\\d{2})-(\\d{2})T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$/.exec(value);
+  if (!matched) return false;
+  const year = Number(matched[1]);
+  const month = Number(matched[2]);
+  const day = Number(matched[3]);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return year > 0 && month >= 1 && month <= 12 &&
+    day >= 1 && day <= monthDays[month - 1] && Number.isFinite(Date.parse(value));
+}
 
 function normalize(message) {
   return Envelope.toObject(message, {
@@ -54,13 +73,13 @@ export function validateEnvelope(envelope) {
     if (!uuid.test(envelope[field])) errors.push(`${field} must be a UUID`);
   }
   if (!envelope.tenantId || envelope.tenantId.length > 128) errors.push("tenantId must contain 1-128 characters");
-  try {
-    if (BigInt(envelope.aggregateVersion || "0") < 0n) errors.push("aggregateVersion must not be negative");
-  } catch {
-    errors.push("aggregateVersion must be an integer");
+  const version = envelope.aggregateVersion;
+  if (typeof version !== "string" || !/^(0|[1-9][0-9]*)$/.test(version) ||
+      BigInt(/^(0|[1-9][0-9]*)$/.test(version) ? version : "0") > maxAggregateVersion) {
+    errors.push("aggregateVersion must be a canonical nonnegative int64 decimal");
   }
-  if (Number.isNaN(Date.parse(envelope.occurredAt))) errors.push("occurredAt must be an RFC 3339 timestamp");
-  if (envelope.traceparent && !traceparent.test(envelope.traceparent)) errors.push("traceparent is invalid");
+  if (!validRfc3339(envelope.occurredAt)) errors.push("occurredAt must be an RFC 3339 timestamp");
+  if (envelope.traceparent && !validTraceparent(envelope.traceparent)) errors.push("traceparent is invalid");
   const payloadBytes = Buffer.from(envelope.payloadJson ?? []);
   if (payloadBytes.length === 0 || payloadBytes.length > 65_536) errors.push("payloadJson must contain 1-65536 bytes");
 
