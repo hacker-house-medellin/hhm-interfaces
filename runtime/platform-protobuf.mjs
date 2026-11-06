@@ -27,7 +27,7 @@ function validTraceparent(value) {
 
 function validRfc3339(value) {
   if (typeof value !== "string") return false;
-  const matched = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
+  const matched = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
   if (!matched) return false;
   const year = Number(matched[1]);
   const month = Number(matched[2]);
