@@ -62,3 +62,58 @@ test("event payloads never accept cross-tenant substitution", () => {
   assert.equal(checked.ok, false);
   assert.ok(checked.errors.some((error) => error.startsWith("payload: ")));
 });
+
+test("aggregate versions are canonical signed-int64 nonnegative decimals", () => {
+  for (const version of ["", "-1", "+1", "01", "0x10", "1.0", "9223372036854775808", 1, null]) {
+    const checked = validateEnvelope({ ...envelope(Buffer.from(JSON.stringify(reservation))), aggregateVersion: version });
+    assert.equal(checked.ok, false, `accepted aggregateVersion ${String(version)}`);
+    assert.ok(checked.errors.some((error) => error.startsWith("aggregateVersion must")), String(version));
+  }
+  for (const version of ["0", "1", "9223372036854775807"]) {
+    assert.equal(
+      validateEnvelope({ ...envelope(Buffer.from(JSON.stringify(reservation))), aggregateVersion: version }).ok,
+      true,
+      version,
+    );
+  }
+});
+
+test("occurredAt requires a real calendar date and explicit RFC 3339 offset", () => {
+  for (const occurredAt of [
+    "2026-02-30T12:34:56Z",
+    "2025-02-29T12:34:56Z",
+    "2026-01-01 12:34:56Z",
+    "2026-01-01T12:34:56",
+    "2026-13-01T12:34:56Z",
+    "2026-01-01T25:34:56Z",
+    "2026-01-01T12:34:56+24:00",
+    null,
+  ]) {
+    const checked = validateEnvelope({ ...envelope(Buffer.from(JSON.stringify(reservation))), occurredAt });
+    assert.equal(checked.ok, false, `accepted occurredAt ${occurredAt}`);
+    assert.ok(checked.errors.includes("occurredAt must be an RFC 3339 timestamp"));
+  }
+  for (const occurredAt of ["2024-02-29T12:34:56Z", "2026-11-06T12:34:56.123-05:00"]) {
+    assert.equal(
+      validateEnvelope({ ...envelope(Buffer.from(JSON.stringify(reservation))), occurredAt }).ok,
+      true,
+      occurredAt,
+    );
+  }
+});
+
+test("traceparent rejects reserved versions and zero trace/span identifiers", () => {
+  const traceId = "0123456789abcdef0123456789abcdef";
+  const spanId = "0123456789abcdef";
+  for (const traceparent of [
+    `00-${"0".repeat(32)}-${spanId}-01`,
+    `00-${traceId}-${"0".repeat(16)}-01`,
+    `ff-${traceId}-${spanId}-01`,
+    `01-${traceId}-${spanId}-01`,
+    `00-${traceId}-${spanId}-zz`,
+  ]) {
+    const checked = validateEnvelope({ ...envelope(Buffer.from(JSON.stringify(reservation))), traceparent });
+    assert.equal(checked.ok, false, `accepted traceparent ${traceparent}`);
+    assert.ok(checked.errors.includes("traceparent is invalid"));
+  }
+});
