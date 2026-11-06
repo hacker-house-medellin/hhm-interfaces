@@ -69,12 +69,17 @@ export function validateEnvelope(envelope) {
   let payload;
   if (payloadBytes.length > 0 && payloadBytes.length <= 65_536) {
     try {
-      payload = JSON.parse(payloadBytes.toString("utf8"));
+      // Buffer.toString("utf8") silently replaces malformed bytes. In an
+      // authoritative event boundary that can change the payload being checked.
+      payload = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payloadBytes));
+      if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+        errors.push("payloadJson must be a JSON object");
+      }
     } catch {
       errors.push("payloadJson must be UTF-8 JSON");
     }
   }
-  if (event && payload) {
+  if (event && payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
     const record = validatePlatformRecord(event.model, payload, {
       tenantId: envelope.tenantId,
       locationId: envelope.locationId,
