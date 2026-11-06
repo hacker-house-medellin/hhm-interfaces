@@ -1,0 +1,33 @@
+name: Platform envelope security
+on:
+  pull_request:
+    paths:
+      - "runtime/platform-protobuf.mjs"
+      - "tests/platform-envelope-security.test.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/platform-envelope-security.yml"
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  platform-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Generate independently authored contract projections
+        run: npm run generate:platform
+      - name: Execute platform boundary and protobuf tests
+        run: npm run test:platform
+      - name: Check generated platform drift
+        run: git diff --exit-code -- generated/platform
