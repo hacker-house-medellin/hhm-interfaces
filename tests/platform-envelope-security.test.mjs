@@ -102,6 +102,16 @@ test("occurredAt requires a real calendar date and explicit RFC 3339 offset", ()
   }
 });
 
+test("encoder does not normalize invalid caller aggregate versions into valid protobuf", () => {
+  for (const version of ["01", "+1", "0x10", 1, "9223372036854775808"]) {
+    assert.throws(
+      () => encodePlatformEvent({ ...envelope(Buffer.from(JSON.stringify(reservation))), aggregateVersion: version }),
+      /aggregateVersion must be a canonical nonnegative int64 decimal/,
+      String(version),
+    );
+  }
+});
+
 test("traceparent rejects reserved versions and zero trace/span identifiers", () => {
   const traceId = "0123456789abcdef0123456789abcdef";
   const spanId = "0123456789abcdef";
