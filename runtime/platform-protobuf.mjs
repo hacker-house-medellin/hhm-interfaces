@@ -27,7 +27,7 @@ function validTraceparent(value) {
 
 function validRfc3339(value) {
   if (typeof value !== "string") return false;
-  const matched = /^(\\d{4})-(\\d{2})-(\\d{2})T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$/.exec(value);
+  const matched = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
   if (!matched) return false;
   const year = Number(matched[1]);
   const month = Number(matched[2]);
@@ -75,7 +75,7 @@ export function validateEnvelope(envelope) {
   if (!envelope.tenantId || envelope.tenantId.length > 128) errors.push("tenantId must contain 1-128 characters");
   const version = envelope.aggregateVersion;
   if (typeof version !== "string" || !/^(0|[1-9][0-9]*)$/.test(version) ||
-      BigInt(/^(0|[1-9][0-9]*)$/.test(version) ? version : "0") > maxAggregateVersion) {
+      BigInt(version) > maxAggregateVersion) {
     errors.push("aggregateVersion must be a canonical nonnegative int64 decimal");
   }
   if (!validRfc3339(envelope.occurredAt)) errors.push("occurredAt must be an RFC 3339 timestamp");
