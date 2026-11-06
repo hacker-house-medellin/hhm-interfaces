@@ -48,6 +48,11 @@ function normalize(message) {
 }
 
 export function encodePlatformEvent(value) {
+  // protobufjs fromObject() coerces integer spellings, numbers and strings.
+  // Admit the original uncoerced input before conversion can hide an invalid
+  // int64 lexeme or another envelope contract violation.
+  const raw = validateEnvelope(value);
+  if (!raw.ok) throw new TypeError(`invalid platform event: ${raw.errors.join("; ")}`);
   const message = Envelope.fromObject(value);
   const wireError = Envelope.verify(message);
   if (wireError) throw new TypeError(`invalid protobuf envelope: ${wireError}`);
