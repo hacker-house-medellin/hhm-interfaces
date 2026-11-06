@@ -12,8 +12,8 @@ function envelope(payloadJson) {
   return {
     schemaVersion: "hhaus.platform.event.v1",
     eventId: "14141414-1414-4414-8414-141414141414",
-    tenantId: reservation.tenantId,
-    locationId: reservation.locationId,
+    tenantId: "tenant:acme",
+    locationId: "11111111-1111-4111-8111-111111111111",
     aggregateId: reservation.reservationId,
     aggregateVersion: "2",
     eventType: "RESERVATION_TRANSITION",
