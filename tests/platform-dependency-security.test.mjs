@@ -24,6 +24,8 @@ const approved = Object.freeze({
 function verifyDependencySecurity(manifest, snapshot) {
   assert.equal(snapshot.lockfileVersion, 3, "npm v3 lock must remain unchanged");
   assert.equal(snapshot.packages?.[""]?.name, manifest.name, "root name differs from lock");
+  assert.deepEqual(snapshot.packages?.[""]?.devDependencies, manifest.devDependencies,
+    "root manifest and locked dependency declarations must match exactly");
   assert.equal(manifest.overrides?.undici, approved.undici.version,
     "exact undici override is required while Scalar pins a vulnerable release");
   assert.equal(manifest.scripts?.["test:dependency-security"],
@@ -49,6 +51,22 @@ function verifyDependencySecurity(manifest, snapshot) {
 }
 
 function verifyWorkflowPolicy(source) {
+  assert.match(source, /^s+- uses: actions/checkout@[a-f0-9]{40}$/m,
+    "checkout action must be pinned to an immutable 40-character commit");
+  assert.match(source, /^          ref: ${{ github.event.pull_request.head.sha || github.sha }}$/m,
+    "CI must check out the original exact PR head (or push commit)");
+  assert.match(source, /^          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}$/m,
+    "CI must bind its commit assertion to the original exact PR head");
+  assert.match(source, /^          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"$/m,
+    "CI must fail if checked-out SHA differs from expected head");
+  assert.match(source, /^          git rev-parse 'HEAD^{tree}'$/m,
+    "CI must report the exact reviewed git tree");
+  for (const file of ["package.json", "package-lock.json", "tests/platform-dependency-security.test.mjs"]) {
+    assert.ok(source.includes("git rev-parse HEAD:" + file),
+      file + ": reviewed file blob SHA must be verified");
+  }
+  assert.match(source, /^          persist-credentials: false$/m,
+    "CI checkout must not persist repository credentials");
   assert.match(source, /npm ci --ignore-scripts/,
     "installation must use frozen lock and disallow lifecycle scripts");
   assert.match(source, /npm run test:dependency-security/,
@@ -91,12 +109,22 @@ test("root override and lock identity cannot be silently removed or widened", ()
   const altered = structuredClone(lock);
   altered.packages["node_modules/@typespec/openapi3"].version = "1.17.0";
   assert.throws(() => verifyDependencySecurity(packageJson, altered), /unrelated TypeSpec upgrade/);
+  const staleRoot = structuredClone(lock);
+  staleRoot.packages[""].devDependencies["@typespec/compiler"] = "1.15.0";
+  assert.throws(() => verifyDependencySecurity(packageJson, staleRoot),
+    /root manifest and locked dependency declarations must match exactly/);
 });
 
 test("CI cannot skip frozen install, graph integrity, or live security audit", () => {
   verifyWorkflowPolicy(workflow);
   const mutations = [
     workflow.replace("npm ci --ignore-scripts", "npm install"),
+    workflow.replace("ref: ${{ github.event.pull_request.head.sha || github.sha }}", "ref: ${{ github.sha }}"),
+    workflow.replace("EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}", "EXPECTED_HEAD: ${{ github.sha }}"),
+    workflow.replace('test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"', "echo no SHA comparison"),
+    workflow.replace("git rev-parse 'HEAD^{tree}'", "echo no tree evidence"),
+    workflow.replace("git rev-parse HEAD:package-lock.json", "echo no lock blob"),
+    workflow.replace("persist-credentials: false", "persist-credentials: true"),
     workflow.replace("npm run test:dependency-security", "echo ignored"),
     workflow.replace("npm ls undici fast-uri --all", "echo nested ignored"),
     workflow.replace("npm audit --audit-level=moderate", "echo skipped"),
