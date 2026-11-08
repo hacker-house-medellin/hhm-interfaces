@@ -26,7 +26,7 @@ function assertCallerSecurity(source) {
     'admission must compare actual checkout to expected head');
   assert.ok(source.includes("          git rev-parse 'HEAD^{tree}'"),
     'admission must print source tree identity');
-  const checkouts = source.match(/^\s+uses: actions\/checkout@[^\s]+$/gm) || [];
+  const checkouts = source.match(/^\s+- uses: actions\/checkout@[^\s]+$/gm) || [];
   assert.equal(checkouts.length, 1, 'single immutable test-job checkout expected');
   assert.match(checkouts[0], /actions\/checkout@[a-f0-9]{40}$/,
     'test-job checkout must use immutable full SHA');
