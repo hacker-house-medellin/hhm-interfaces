@@ -51,21 +51,21 @@ function verifyDependencySecurity(manifest, snapshot) {
 }
 
 function verifyWorkflowPolicy(source) {
-  assert.match(source, /^s+- uses: actions/checkout@[a-f0-9]{40}$/m,
+  assert.match(source, /^\s+- uses: actions\/checkout@[a-f0-9]{40}$/m,
     "checkout action must be pinned to an immutable 40-character commit");
-  assert.match(source, /^          ref: ${{ github.event.pull_request.head.sha || github.sha }}$/m,
-    "CI must check out the original exact PR head (or push commit)");
-  assert.match(source, /^          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}$/m,
-    "CI must bind its commit assertion to the original exact PR head");
-  assert.match(source, /^          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"$/m,
+  const exactRef = '          ref: ${{ github.event.pull_request.head.sha || github.sha }}';
+  const exactEnv = '          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}';
+  assert.ok(source.includes(exactRef), "CI must check out the original exact PR head (or push commit)");
+  assert.ok(source.includes(exactEnv), "CI must bind its commit assertion to the original exact PR head");
+  assert.ok(source.includes('          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"'),
     "CI must fail if checked-out SHA differs from expected head");
-  assert.match(source, /^          git rev-parse 'HEAD^{tree}'$/m,
+  assert.ok(source.includes("          git rev-parse 'HEAD^{tree}'"),
     "CI must report the exact reviewed git tree");
   for (const file of ["package.json", "package-lock.json", "tests/platform-dependency-security.test.mjs"]) {
     assert.ok(source.includes("git rev-parse HEAD:" + file),
       file + ": reviewed file blob SHA must be verified");
   }
-  assert.match(source, /^          persist-credentials: false$/m,
+  assert.ok(source.includes("          persist-credentials: false"),
     "CI checkout must not persist repository credentials");
   assert.match(source, /npm ci --ignore-scripts/,
     "installation must use frozen lock and disallow lifecycle scripts");
