@@ -339,3 +339,48 @@ test("extreme RFC3339 fractional seconds fail the bounded metadata gate", () => 
   assert.throws(() => encodePlatformEvent({ ...envelope(raw), occurredAt }),
     /occurredAt must be an RFC 3339 timestamp/);
 });
+
+
+test("authoritative envelope metadata cannot be inherited from a prototype", () => {
+  const raw = Buffer.from(JSON.stringify(reservation));
+  const required = [
+    "schemaVersion", "eventId", "tenantId", "locationId", "aggregateId",
+    "aggregateVersion", "eventType", "occurredAt", "payloadJson",
+  ];
+  for (const field of required) {
+    const input = envelope(raw);
+    const inherited = input[field];
+    delete input[field];
+    Object.setPrototypeOf(input, { [field]: inherited });
+    let result;
+    assert.doesNotThrow(() => { result = validateEnvelope(input); }, field);
+    assert.equal(result.ok, false, field);
+    assert.ok(result.errors.includes(field + " must be an own property"), field);
+    assert.throws(() => encodePlatformEvent(input), /invalid platform event/, field);
+  }
+
+  const nullProto = Object.assign(Object.create(null), envelope(raw));
+  assert.equal(validateEnvelope(nullProto).ok, true,
+    "own keys on null-prototype JSON objects are still valid");
+});
+
+test("hostile event discriminators cannot trigger stringification or gigantic diagnostics", () => {
+  const raw = Buffer.from(JSON.stringify(reservation));
+  const hostile = [
+    Object.create(null),
+    { toString() { throw Error("attacker-controlled toString executed"); } },
+    { [Symbol.toPrimitive]() { throw Error("attacker-controlled toPrimitive executed"); } },
+    Symbol("evil"),
+    "A".repeat(256_000),
+  ];
+  for (const eventType of hostile) {
+    const input = { ...envelope(raw), eventType };
+    let checked;
+    assert.doesNotThrow(() => { checked = validateEnvelope(input); });
+    assert.equal(checked.ok, false);
+    assert.ok(checked.errors.includes("unsupported eventType"));
+    assert.ok(checked.errors.every((error) => error.length < 512),
+      "unbounded diagnostic amplification");
+    assert.throws(() => encodePlatformEvent(input), /unsupported eventType/);
+  }
+});
