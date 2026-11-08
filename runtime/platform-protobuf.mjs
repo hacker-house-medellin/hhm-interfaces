@@ -99,6 +99,14 @@ export function validateEnvelope(envelope) {
     return { ok: false, errors: ["envelope must be a JSON object"] };
   }
   const errors = [];
+  // Authoritative metadata must not resolve from a caller-controlled prototype.
+  // JSON objects carry their required fields as own properties.
+  for (const field of [
+    "schemaVersion", "eventId", "tenantId", "locationId", "aggregateId",
+    "aggregateVersion", "eventType", "occurredAt", "payloadJson",
+  ]) {
+    if (!Object.hasOwn(envelope, field)) errors.push(`${field} must be an own property`);
+  }
   if (envelope.schemaVersion !== "hhaus.platform.event.v1") errors.push("unsupported schemaVersion");
   for (const field of ["eventId", "locationId", "aggregateId"]) {
     if (typeof envelope[field] !== "string" || !uuid.test(envelope[field])) errors.push(`${field} must be a UUID`);
@@ -131,7 +139,11 @@ export function validateEnvelope(envelope) {
   // admit 'constructor'/'toString'/'__proto__' as a model discriminator.
   const event = typeof envelope.eventType === "string" &&
     Object.hasOwn(eventModels, envelope.eventType) ? eventModels[envelope.eventType] : undefined;
-  if (!event) errors.push(`unsupported eventType ${envelope.eventType}`);
+  // Do not stringify hostile objects or megabyte-long attacker-controlled
+  // discriminators into an error message.
+  if (!event) errors.push(typeof envelope.eventType === "string" &&
+      envelope.eventType.length <= 64 ? `unsupported eventType ${envelope.eventType}` :
+      "unsupported eventType");
   let payload;
   if (payloadBytes.length > 0 && payloadBytes.length <= 65_536) {
     try {
