@@ -252,3 +252,35 @@ test("all six declared event types round-trip without cross-tenant or aggregate 
     }
   }
 });
+
+
+test("pre-decode wire admission rejects non-byte inputs without ever invoking protobuf", () => {
+  for (const input of [undefined, null, "", "{}", [], {}, new ArrayBuffer(2), 123]) {
+    let result;
+    assert.doesNotThrow(() => { result = decodePlatformEvent(input); });
+    assert.deepEqual(result, { ok: false, errors: ["protobuf input must be a byte array"] });
+  }
+});
+
+test("oversized wire frames are denied before parsing, including unknown-field padding", () => {
+  for (const input of [Buffer.alloc(66_561), new Uint8Array(70_000), Buffer.alloc(1_000_000)]) {
+    let result;
+    assert.doesNotThrow(() => { result = decodePlatformEvent(input); });
+    assert.deepEqual(result, {
+      ok: false,
+      errors: ["protobuf envelope exceeds bounded wire size"],
+    });
+  }
+});
+
+test("maximum admitted JSON payload remains encodable and below the wire budget", () => {
+  const json = JSON.stringify(reservation).padEnd(65_536, " ");
+  const raw = Buffer.from(json, "utf8");
+  assert.equal(raw.byteLength, 65_536);
+  const bytes = encodePlatformEvent(envelope(raw));
+  assert.ok(bytes instanceof Uint8Array);
+  assert.ok(bytes.byteLength <= 66_560, "wire size exceeds the reviewed budget");
+  const result = decodePlatformEvent(bytes);
+  assert.equal(result.ok, true, result.errors?.join("; "));
+  assert.deepEqual(result.payload, reservation);
+});
