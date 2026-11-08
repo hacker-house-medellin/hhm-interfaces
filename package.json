@@ -9,7 +9,8 @@
     "check:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs check --config contracts/platform/contracts.config.json",
     "generate:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs generate --config contracts/platform/contracts.config.json",
     "test:platform": "node --test tests/platform-contracts.test.mjs tests/platform-protobuf.test.mjs",
-    "verify:platform": "npm run generate:platform && npm run test:platform && git diff --exit-code -- generated/platform"
+    "verify:platform": "npm run generate:platform && npm run test:platform && git diff --exit-code -- generated/platform",
+    "test:dependency-security": "node --test tests/platform-dependency-security.test.mjs"
   },
   "devDependencies": {
     "@oresoftware/ores-contracts": "https://codeload.github.com/ORESoftware/ores-contracts/tar.gz/7bf6b72ea433a0b9d9ef5a6e164b2a322bfedc1e",
@@ -21,5 +22,8 @@
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "protobufjs": "8.8.0"
+  },
+  "overrides": {
+    "undici": "7.30.1"
   }
 }
