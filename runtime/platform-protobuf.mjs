@@ -72,23 +72,36 @@ export function decodePlatformEvent(bytes) {
 }
 
 export function validateEnvelope(envelope) {
+  // Runtime ingress is untrusted: reject invalid roots before property reads.
+  if (envelope === null || typeof envelope !== "object" || Array.isArray(envelope)) {
+    return { ok: false, errors: ["envelope must be a JSON object"] };
+  }
   const errors = [];
   if (envelope.schemaVersion !== "hhaus.platform.event.v1") errors.push("unsupported schemaVersion");
   for (const field of ["eventId", "locationId", "aggregateId"]) {
-    if (!uuid.test(envelope[field])) errors.push(`${field} must be a UUID`);
+    if (typeof envelope[field] !== "string" || !uuid.test(envelope[field])) errors.push(`${field} must be a UUID`);
   }
-  if (!envelope.tenantId || envelope.tenantId.length > 128) errors.push("tenantId must contain 1-128 characters");
+  if (typeof envelope.tenantId !== "string" || envelope.tenantId.length < 1 ||
+      envelope.tenantId.length > 128) errors.push("tenantId must contain 1-128 characters");
   const version = envelope.aggregateVersion;
-  if (typeof version !== "string" || !/^(0|[1-9][0-9]*)$/.test(version) ||
-      BigInt(version) > maxAggregateVersion) {
+  if (typeof version !== "string" || version.length > 19 ||
+      !/^(0|[1-9][0-9]*)$/.test(version) || BigInt(version) > maxAggregateVersion) {
     errors.push("aggregateVersion must be a canonical nonnegative int64 decimal");
   }
   if (!validRfc3339(envelope.occurredAt)) errors.push("occurredAt must be an RFC 3339 timestamp");
-  if (envelope.traceparent && !validTraceparent(envelope.traceparent)) errors.push("traceparent is invalid");
-  const payloadBytes = Buffer.from(envelope.payloadJson ?? []);
+  if (envelope.traceparent !== undefined && envelope.traceparent !== "" &&
+      (typeof envelope.traceparent !== "string" || !validTraceparent(envelope.traceparent))) {
+    errors.push("traceparent is invalid");
+  }
+  const isBytes = Buffer.isBuffer(envelope.payloadJson) || envelope.payloadJson instanceof Uint8Array;
+  if (!isBytes) errors.push("payloadJson must be a byte array");
+  const payloadBytes = isBytes ? Buffer.from(envelope.payloadJson) : Buffer.alloc(0);
   if (payloadBytes.length === 0 || payloadBytes.length > 65_536) errors.push("payloadJson must contain 1-65536 bytes");
 
-  const event = eventModels[envelope.eventType];
+  // A frozen plain object still inherits Object.prototype methods. Never
+  // admit 'constructor'/'toString'/'__proto__' as a model discriminator.
+  const event = typeof envelope.eventType === "string" &&
+    Object.hasOwn(eventModels, envelope.eventType) ? eventModels[envelope.eventType] : undefined;
   if (!event) errors.push(`unsupported eventType ${envelope.eventType}`);
   let payload;
   if (payloadBytes.length > 0 && payloadBytes.length <= 65_536) {
