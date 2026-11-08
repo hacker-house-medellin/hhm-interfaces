@@ -40,6 +40,10 @@ jobs:
           toolchain: stable
       - name: Install exact dependencies
         run: npm ci --ignore-scripts
+      - name: Fail-close reviewed npm dependency graph and install provenance
+        run: |
+          npm run test:dependency-security
+          npm ls undici fast-uri --all
       - name: Prove authority and generated-artifact parity
         run: npm run check:platform
       - name: Regenerate deterministic artifacts
