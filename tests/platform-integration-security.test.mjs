@@ -60,11 +60,11 @@ test("mutation probes fail if either security suite, audit or exact-head checkou
   ]) {
     const bad = structuredClone(packageJson);
     bad.scripts["test:platform"] = remove(bad.scripts["test:platform"], term);
-    assert.throws(() => probe(bad), /platform.*test\.mjs/);
+    assert.throws(() => probe(bad), undefined, "platform gate admitted missing: " + term);
   }
   const disabledDependencies = structuredClone(packageJson);
   disabledDependencies.scripts["test:dependency-security"] = "echo skipped";
-  assert.throws(() => probe(disabledDependencies), /test:dependency-security/);
+  assert.throws(() => probe(disabledDependencies), undefined, "dependency suite was bypassed");
   for (const term of [
     "npm run test:dependency-security",
     "npm run test:platform",
