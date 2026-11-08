@@ -12,6 +12,25 @@ permissions:
 
 jobs:
   source-policy:
-    uses: ores-otel/.github/.github/workflows/source-policy-lint.yml@c417efc488bb4ca84e078fad9626f55b374913dd
+    # STAGING ONLY: pin to independently reviewed and merged upstream #26 SHA before merging.
+    uses: ores-otel/.github/.github/workflows/source-policy-lint.yml@97ca3010d02bf9af2b6d13c4deb7064d4e2cad2c
     permissions:
       contents: read
+
+  caller-pin-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify reviewed caller head and immutable central policy pin
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git rev-parse 'HEAD^{tree}'
+          node --test tests/source-policy-caller.test.mjs

@@ -11,6 +11,8 @@ on:
       - "tests/platform-rust-witness/**"
       - "package.json"
       - "package-lock.json"
+      - ".github/workflows/source-policy-lint.yml"
+      - "tests/source-policy-caller.test.mjs"
       - ".github/workflows/platform-contracts.yml"
   push:
     branches: [dev, main]
