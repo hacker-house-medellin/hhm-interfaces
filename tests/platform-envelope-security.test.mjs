@@ -284,3 +284,58 @@ test("maximum admitted JSON payload remains encodable and below the wire budget"
   assert.equal(result.ok, true, result.errors?.join("; "));
   assert.deepEqual(result.payload, reservation);
 });
+
+
+test("oversized payloads are rejected before Buffer.from could clone attacker-sized bytes", () => {
+  const oversized = [
+    Buffer.alloc(4 * 1024 * 1024, 0x20),
+    new Uint8Array(3 * 1024 * 1024),
+  ];
+  const originalFrom = Buffer.from;
+  Buffer.from = function (value, ...args) {
+    if (oversized.includes(value)) {
+      throw new Error("an oversized payload was copied before checking the budget");
+    }
+    return Reflect.apply(originalFrom, this, [value, ...args]);
+  };
+  try {
+    for (const payloadJson of oversized) {
+      const input = envelope(payloadJson);
+      let checked;
+      assert.doesNotThrow(() => { checked = validateEnvelope(input); });
+      assert.equal(checked.ok, false);
+      assert.ok(checked.errors.includes("payloadJson must contain 1-65536 bytes"));
+      assert.throws(() => encodePlatformEvent(input),
+        /invalid platform event: .*payloadJson must contain 1-65536 bytes/);
+    }
+  } finally {
+    Buffer.from = originalFrom;
+  }
+});
+
+test("encoder snapshots accessor fields once so validation and wire conversion cannot diverge", () => {
+  const input = envelope(Buffer.from(JSON.stringify(reservation)));
+  let accesses = 0;
+  Object.defineProperty(input, "eventId", {
+    enumerable: true,
+    get() {
+      accesses++;
+      return "14141414-1414-4414-8414-141414141414";
+    },
+  });
+  const wire = encodePlatformEvent(input);
+  assert.equal(accesses, 1, "caller-supplied getter was evaluated more than once");
+  const decoded = decodePlatformEvent(wire);
+  assert.equal(decoded.ok, true, decoded.errors?.join("; "));
+  assert.deepEqual(decoded.payload, reservation);
+});
+
+test("extreme RFC3339 fractional seconds fail the bounded metadata gate", () => {
+  const raw = Buffer.from(JSON.stringify(reservation));
+  const occurredAt = "2026-11-07T12:00:00." + "0".repeat(100_000) + "Z";
+  const checked = validateEnvelope({ ...envelope(raw), occurredAt });
+  assert.equal(checked.ok, false);
+  assert.ok(checked.errors.includes("occurredAt must be an RFC 3339 timestamp"));
+  assert.throws(() => encodePlatformEvent({ ...envelope(raw), occurredAt }),
+    /occurredAt must be an RFC 3339 timestamp/);
+});
