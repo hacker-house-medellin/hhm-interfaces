@@ -19,6 +19,9 @@ const eventModels = Object.freeze({
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const traceparent = /^00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/i;
 const maxAggregateVersion = 9_223_372_036_854_775_807n;
+// 65,536-byte JSON plus bounded envelope metadata, field tags and protobuf lengths.
+// Enforce before protobufjs allocates/iterates over an attacker-supplied wire buffer.
+const maxEnvelopeWireBytes = 66_560;
 
 function validTraceparent(value) {
   const matched = traceparent.exec(value);
@@ -58,10 +61,20 @@ export function encodePlatformEvent(value) {
   if (wireError) throw new TypeError(`invalid protobuf envelope: ${wireError}`);
   const checked = validateEnvelope(normalize(message));
   if (!checked.ok) throw new TypeError(`invalid platform event: ${checked.errors.join("; ")}`);
-  return Envelope.encode(message).finish();
+  const bytes = Envelope.encode(message).finish();
+  if (bytes.byteLength > maxEnvelopeWireBytes) {
+    throw new TypeError("protobuf envelope exceeds bounded wire size");
+  }
+  return bytes;
 }
 
 export function decodePlatformEvent(bytes) {
+  if (!(bytes instanceof Uint8Array)) {
+    return { ok: false, errors: ["protobuf input must be a byte array"] };
+  }
+  if (bytes.byteLength > maxEnvelopeWireBytes) {
+    return { ok: false, errors: ["protobuf envelope exceeds bounded wire size"] };
+  }
   let message;
   try {
     message = Envelope.decode(bytes);
