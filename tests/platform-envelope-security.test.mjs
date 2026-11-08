@@ -242,7 +242,9 @@ test("all six declared event types round-trip without cross-tenant or aggregate 
     assert.deepEqual(roundTrip.payload, value);
     for (const invalid of [
       { tenantId: "tenant:external" },
-      { aggregateId: "99999999-9999-4999-8999-999999999999" },
+      { aggregateId: data.aggregateId === "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+        ? "ffffffff-ffff-4fff-8fff-ffffffffffff"
+        : "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" },
     ]) {
       const denied = validateEnvelope({ ...data, ...invalid });
       assert.equal(denied.ok, false, eventType + " unauthorized context");
