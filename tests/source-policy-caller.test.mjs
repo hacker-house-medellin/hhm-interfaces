@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const workflow = readFileSync(
   new URL('../.github/workflows/source-policy-lint.yml', import.meta.url), 'utf8');
+const platformWorkflow = readFileSync(
+  new URL('../.github/workflows/platform-contracts.yml', import.meta.url), 'utf8');
 const approvedCandidate = '97ca3010d02bf9af2b6d13c4deb7064d4e2cad2c';
 const expr = '$' + '{{ github.event.pull_request.head.sha || github.sha }}';
 
@@ -75,5 +77,60 @@ test('negative mutation: merged-ref checkout, missing gate and credential bypass
     '\n          persist-credentials: true\n',
   ]) {
     assert.throws(() => assertCallerSecurity(workflow + extra));
+  }
+});
+
+
+function assertPlatformAdmission(source) {
+  for (const path of [
+    '      - ".github/workflows/source-policy-lint.yml"',
+    '      - "tests/source-policy-caller.test.mjs"',
+    '      - ".github/workflows/platform-contracts.yml"',
+  ]) {
+    assert.ok(source.includes(path), 'full platform/security CI must trigger on: ' + path);
+  }
+  const expr = '$' + '{{ github.event.pull_request.head.sha || github.sha }}';
+  assert.ok(source.includes('          ref: ' + expr),
+    'platform admission must check out reviewed head');
+  assert.ok(source.includes('          EXPECTED_HEAD: ' + expr),
+    'platform admission must independently assert reviewed head');
+  assert.ok(source.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"'),
+    'platform admission must enforce identical checkout SHA');
+  for (const gate of [
+    'npm ci --ignore-scripts',
+    'npm run test:dependency-security',
+    'npm ls undici fast-uri --all',
+    'npm audit --audit-level=moderate',
+    'cargo check --locked',
+  ]) {
+    assert.ok(source.includes(gate),
+      'source-policy caller edits must also pass full platform gate: ' + gate);
+  }
+  assert.doesNotMatch(source,
+    /continue-on-error:\s*true|--omit=dev|--audit=false|--no-audit|npm audit[^\n]*\|\|\s*(?:true|:)/,
+    'platform gate must not suppress dependency advisories');
+}
+
+test('source-policy caller pin changes must trigger exact-head platform and dependency security', () => {
+  assertPlatformAdmission(platformWorkflow);
+});
+
+test('negative mutation: platform security skipped on caller changes is rejected', () => {
+  const mutations = [
+    ['      - ".github/workflows/source-policy-lint.yml"', '      - "unused.yml"'],
+    ['      - "tests/source-policy-caller.test.mjs"', '      - "unused.test.mjs"'],
+    ['          ref: ' + expr, '          ref: ' + '$' + '{{ github.sha }}'],
+    ['          EXPECTED_HEAD: ' + expr, '          EXPECTED_HEAD: ' + '$' + '{{ github.sha }}'],
+    ['test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"', 'echo skip head check'],
+    ['npm ci --ignore-scripts', 'npm install'],
+    ['npm run test:dependency-security', 'echo skip lock tests'],
+    ['npm ls undici fast-uri --all', 'echo skip nested installs'],
+    ['npm audit --audit-level=moderate', 'echo skip advisory database'],
+    ['cargo check --locked', 'echo skip Rust contracts'],
+  ];
+  for (const [i, [needle, replacement]] of mutations.entries()) {
+    assert.ok(platformWorkflow.includes(needle), 'missing platform mutation anchor ' + i);
+    assert.throws(() => assertPlatformAdmission(platformWorkflow.replace(needle, replacement)),
+      undefined, 'platform audit mutation was admitted: ' + i);
   }
 });
