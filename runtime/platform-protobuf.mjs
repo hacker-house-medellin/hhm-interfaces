@@ -29,7 +29,7 @@ function validTraceparent(value) {
 }
 
 function validRfc3339(value) {
-  if (typeof value !== "string") return false;
+  if (typeof value !== "string" || value.length > 64) return false;
   const matched = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
   if (!matched) return false;
   const year = Number(matched[1]);
@@ -51,12 +51,21 @@ function normalize(message) {
 }
 
 export function encodePlatformEvent(value) {
-  // protobufjs fromObject() coerces integer spellings, numbers and strings.
-  // Admit the original uncoerced input before conversion can hide an invalid
-  // int64 lexeme or another envelope contract violation.
-  const raw = validateEnvelope(value);
+  // Snapshot the caller's fields and bounded payload before validation and
+  // protobufjs conversion. Getters must not supply different values between
+  // those stages, and a shared Uint8Array must not change after validation.
+  // Never copy an oversized byte array: validation rejects it first.
+  const snapshot = value !== null && typeof value === "object" && !Array.isArray(value)
+    ? { ...value } : value;
+  if (snapshot && typeof snapshot === "object" && snapshot.payloadJson instanceof Uint8Array &&
+      snapshot.payloadJson.byteLength <= 65_536) {
+    snapshot.payloadJson = Buffer.from(snapshot.payloadJson);
+  }
+  // protobufjs fromObject() coerces integers and strings; validate the
+  // original spellings and stable payload snapshot before conversion.
+  const raw = validateEnvelope(snapshot);
   if (!raw.ok) throw new TypeError(`invalid platform event: ${raw.errors.join("; ")}`);
-  const message = Envelope.fromObject(value);
+  const message = Envelope.fromObject(snapshot);
   const wireError = Envelope.verify(message);
   if (wireError) throw new TypeError(`invalid protobuf envelope: ${wireError}`);
   const checked = validateEnvelope(normalize(message));
@@ -106,10 +115,17 @@ export function validateEnvelope(envelope) {
       (typeof envelope.traceparent !== "string" || !validTraceparent(envelope.traceparent))) {
     errors.push("traceparent is invalid");
   }
-  const isBytes = Buffer.isBuffer(envelope.payloadJson) || envelope.payloadJson instanceof Uint8Array;
+  const suppliedBytes = envelope.payloadJson;
+  const isBytes = Buffer.isBuffer(suppliedBytes) || suppliedBytes instanceof Uint8Array;
   if (!isBytes) errors.push("payloadJson must be a byte array");
-  const payloadBytes = isBytes ? Buffer.from(envelope.payloadJson) : Buffer.alloc(0);
-  if (payloadBytes.length === 0 || payloadBytes.length > 65_536) errors.push("payloadJson must contain 1-65536 bytes");
+  const payloadLength = isBytes ? suppliedBytes.byteLength : 0;
+  if (payloadLength === 0 || payloadLength > 65_536) {
+    errors.push("payloadJson must contain 1-65536 bytes");
+  }
+  // Copy only admitted small inputs; never allocate another attacker-sized
+  // buffer before evaluating the byte budget.
+  const payloadBytes = payloadLength > 0 && payloadLength <= 65_536
+    ? Buffer.from(suppliedBytes) : Buffer.alloc(0);
 
   // A frozen plain object still inherits Object.prototype methods. Never
   // admit 'constructor'/'toString'/'__proto__' as a model discriminator.
