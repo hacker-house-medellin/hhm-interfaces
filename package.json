@@ -8,7 +8,7 @@
     "check:intake": "npm run generate:intake && git diff --exit-code -- generated",
     "check:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs check --config contracts/platform/contracts.config.json",
     "generate:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs generate --config contracts/platform/contracts.config.json",
-    "test:platform": "node --test tests/platform-contracts.test.mjs tests/platform-protobuf.test.mjs",
+    "test:platform": "node --test tests/platform-contracts.test.mjs tests/platform-protobuf.test.mjs tests/platform-envelope-security.test.mjs",
     "verify:platform": "npm run generate:platform && npm run test:platform && git diff --exit-code -- generated/platform"
   },
   "devDependencies": {
