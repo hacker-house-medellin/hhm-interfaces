@@ -127,3 +127,126 @@ test("traceparent rejects reserved versions and zero trace/span identifiers", ()
     assert.ok(checked.errors.includes("traceparent is invalid"));
   }
 });
+
+
+test("envelope root admission rejects null, primitives and arrays without throwing", () => {
+  for (const input of [null, undefined, false, 0, 7, "", "{}", [], [envelope(Buffer.from("{}"))]]) {
+    let result;
+    assert.doesNotThrow(() => { result = validateEnvelope(input); });
+    assert.deepEqual(result, { ok: false, errors: ["envelope must be a JSON object"] });
+    assert.throws(() => encodePlatformEvent(input), /envelope must be a JSON object/);
+  }
+});
+
+test("event discriminator never resolves inherited Object prototype properties", () => {
+  const bytes = Buffer.from(JSON.stringify(reservation));
+  for (const eventType of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
+    const input = { ...envelope(bytes), eventType };
+    const checked = validateEnvelope(input);
+    assert.equal(checked.ok, false, eventType);
+    assert.ok(checked.errors.includes("unsupported eventType " + eventType), eventType);
+    assert.throws(() => encodePlatformEvent(input), /unsupported eventType/, eventType);
+  }
+});
+
+test("untrusted strings cannot be forged by object, boolean or numeric coercion", () => {
+  const bytes = Buffer.from(JSON.stringify(reservation));
+  const cases = [
+    ["eventId", { toString: () => "14141414-1414-4414-8414-141414141414" }, /eventId must be a UUID/],
+    ["locationId", ["11111111-1111-4111-8111-111111111111"], /locationId must be a UUID/],
+    ["aggregateId", { toString: () => reservation.reservationId }, /aggregateId must be a UUID/],
+    ["tenantId", 1234, /tenantId must contain/],
+    ["tenantId", ["tenant:acme"], /tenantId must contain/],
+    ["tenantId", "x".repeat(129), /tenantId must contain/],
+    ["traceparent", 1, /traceparent is invalid/],
+    ["traceparent", null, /traceparent is invalid/],
+  ];
+  for (const [field, value, diagnostic] of cases) {
+    const input = { ...envelope(bytes), [field]: value };
+    const checked = validateEnvelope(input);
+    assert.equal(checked.ok, false, field);
+    assert.ok(checked.errors.some((message) => diagnostic.test(message)), field);
+    assert.throws(() => encodePlatformEvent(input), /invalid platform event/, field);
+  }
+});
+
+test("payload is byte-only and bounded; strings and ArrayBuffer-shaped objects are denied", () => {
+  const bytes = Buffer.from(JSON.stringify(reservation));
+  for (const payloadJson of [
+    "{}",
+    JSON.stringify(reservation),
+    { type: "Buffer", data: Array.from(bytes) },
+    Array.from(bytes),
+    {},
+    null,
+    Buffer.alloc(0),
+    Buffer.alloc(65_537),
+  ]) {
+    const input = envelope(payloadJson);
+    const checked = validateEnvelope(input);
+    assert.equal(checked.ok, false, "accepted payload type or size: " + typeof payloadJson);
+    assert.ok(checked.errors.some((error) => error.startsWith("payloadJson must")), typeof payloadJson);
+    assert.throws(() => encodePlatformEvent(input), /payloadJson must/);
+  }
+  const exactMaximum = Buffer.from(JSON.stringify(reservation).padEnd(65_536, " "));
+  assert.equal(exactMaximum.length, 65_536);
+  const canonical = envelope(exactMaximum);
+  assert.equal(validateEnvelope(canonical).ok, true);
+  assert.equal(decodePlatformEvent(encodePlatformEvent(canonical)).ok, true);
+  const u8 = new Uint8Array(bytes);
+  assert.equal(validateEnvelope(envelope(u8)).ok, true);
+});
+
+test("overlong version numbers reject before arbitrary-precision coercion", () => {
+  for (const version of ["9".repeat(20), "1".repeat(50_000), "-0", " 1", "1 "]) {
+    const input = {
+      ...envelope(Buffer.from(JSON.stringify(reservation))),
+      aggregateVersion: version,
+    };
+    const checked = validateEnvelope(input);
+    assert.equal(checked.ok, false);
+    assert.ok(checked.errors.some((error) => error.startsWith("aggregateVersion must")));
+    assert.throws(() => encodePlatformEvent(input), /aggregateVersion must/);
+  }
+});
+
+test("all six declared event types round-trip without cross-tenant or aggregate substitution", () => {
+  const models = {
+    RESERVATION_TRANSITION: "reservationId",
+    GUEST_PASS_TRANSITION: "guestPassId",
+    VISIT_TRANSITION: "visitId",
+    ACCESS_GRANT_TRANSITION: "accessGrantId",
+    ACCESS_DECISION: "id",
+    SECURITY_OBSERVATION: "id",
+  };
+  assert.deepEqual(Object.keys(models).sort(), [
+    "ACCESS_DECISION", "ACCESS_GRANT_TRANSITION", "GUEST_PASS_TRANSITION",
+    "RESERVATION_TRANSITION", "SECURITY_OBSERVATION", "VISIT_TRANSITION",
+  ]);
+  for (const [eventType, aggregateField] of Object.entries(models)) {
+    const modelName = eventType.split("_").map((part) =>
+      part.charAt(0) + part.slice(1).toLowerCase()).join("");
+    const fixture = fixtures.valid.find((entry) => entry.model === modelName);
+    assert.ok(fixture, "missing conformance fixture: " + modelName);
+    const value = fixture.value;
+    const data = envelope(Buffer.from(JSON.stringify(value)));
+    data.eventType = eventType;
+    data.aggregateId = value[aggregateField];
+    data.tenantId = value.tenantId;
+    data.locationId = value.locationId || data.locationId;
+    data.occurredAt = value.occurredAt;
+    const checked = validateEnvelope(data);
+    assert.equal(checked.ok, true, eventType + ": " + checked.errors?.join(", "));
+    const roundTrip = decodePlatformEvent(encodePlatformEvent(data));
+    assert.equal(roundTrip.ok, true, eventType + ": " + roundTrip.errors?.join(", "));
+    assert.deepEqual(roundTrip.payload, value);
+    for (const invalid of [
+      { tenantId: "tenant:external" },
+      { aggregateId: "99999999-9999-4999-8999-999999999999" },
+    ]) {
+      const denied = validateEnvelope({ ...data, ...invalid });
+      assert.equal(denied.ok, false, eventType + " unauthorized context");
+      assert.throws(() => encodePlatformEvent({ ...data, ...invalid }), /invalid platform event/);
+    }
+  }
+});
