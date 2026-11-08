@@ -34,8 +34,12 @@ function verifyIntegratedAdmission(manifest, contracts, envelope) {
   for (const workflow of [contracts, envelope]) {
     assert.ok(workflow.includes("npm ci --ignore-scripts"),
       "workflow must use script-free frozen npm installation");
-    assert.ok(workflow.includes("github.event.pull_request.head.sha || github.sha"),
-      "workflow must bind checkout to the exact PR head");
+    assert.match(workflow, /^\s+ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
+      "workflow checkout must use the exact PR head");
+    assert.match(workflow, /^\s+EXPECTED_HEAD: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
+      "workflow expected SHA must use the exact PR head");
+    assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"'),
+      "workflow must compare checked-out SHA to the expected head");
     assert.ok(workflow.includes("persist-credentials: false"),
       "workflow checkout cannot retain GitHub credentials");
     assert.doesNotMatch(workflow,
