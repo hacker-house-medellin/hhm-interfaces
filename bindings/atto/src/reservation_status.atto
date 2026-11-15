@@ -1,0 +1,22 @@
+// Reservation lifecycle values from schemas/reservation.json.
+// Typed AttoLang accessors; no persistence or state-transition authority.
+
+pub fnc reservation_requested(): string {
+    return "requested";
+}
+
+pub fnc reservation_confirmed(): string {
+    return "confirmed";
+}
+
+pub fnc reservation_checked_in(): string {
+    return "checked_in";
+}
+
+pub fnc reservation_completed(): string {
+    return "completed";
+}
+
+pub fnc reservation_cancelled(): string {
+    return "cancelled";
+}

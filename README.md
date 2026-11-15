@@ -60,3 +60,7 @@ npx tsjsv check \
 ```bash
 python3 scripts/verify_repo.py
 ```
+
+## AttoLang .atto bindings (source contract)
+
+`bindings/atto/src/visitor_access.atto` provides typed, transport-independent method/path descriptors for the five visitor/presence operations in `openapi/openapi.json`. `bindings/atto/src/reservation_status.atto` exposes the status vocabulary from `schemas/reservation.json`. Run `npm run test:atto` to check both against their authoritative JSON definitions. These static Node conformance tests do **not** establish executable Atto compiler or guest HTTP client support. See `bindings/atto/README.md` for authentication/privacy constraints and compiler admission requirements.

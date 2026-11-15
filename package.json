@@ -8,8 +8,9 @@
     "check:intake": "npm run generate:intake && git diff --exit-code -- generated",
     "check:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs check --config contracts/platform/contracts.config.json",
     "generate:platform": "node node_modules/@oresoftware/ores-contracts/src/cli.mjs generate --config contracts/platform/contracts.config.json",
-    "test:platform": "node --test tests/platform-contracts.test.mjs tests/platform-protobuf.test.mjs",
-    "verify:platform": "npm run generate:platform && npm run test:platform && git diff --exit-code -- generated/platform"
+    "test:platform": "node --test tests/*.test.mjs",
+    "verify:platform": "npm run generate:platform && npm run test:platform && git diff --exit-code -- generated/platform",
+    "test:atto": "node --test tests/atto-bindings.test.mjs"
   },
   "devDependencies": {
     "@oresoftware/ores-contracts": "https://codeload.github.com/ORESoftware/ores-contracts/tar.gz/7bf6b72ea433a0b9d9ef5a6e164b2a322bfedc1e",
