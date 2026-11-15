@@ -15,6 +15,10 @@ def main() -> int:
     metadata = json.loads((ROOT / "project.json").read_text(encoding="utf-8"))
     required = [
         "README.md",
+        "bindings/atto/README.md",
+        "bindings/atto/src/visitor_access.atto",
+        "bindings/atto/src/reservation_status.atto",
+        "tests/atto-bindings.test.mjs",
         "AGENTS.md",
         "project.json",
         "docs/architecture.md",
