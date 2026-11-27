@@ -1,0 +1,43 @@
+// Additive AttoLang HTTP route descriptors for visitor/presence contracts.
+// Never interpret routes as authorization; injected transports must authenticate.
+// Source-level contract checked against openapi/openapi.json in tests/atto-bindings.test.mjs.
+
+pub fnc visitor_qr_path(): string {
+    return "/v1/visitor-qr/{action}";
+}
+
+pub fnc visitor_qr_method(): string {
+    return "POST";
+}
+
+pub fnc visit_check_in_path(): string {
+    return "/v1/visits/check-in";
+}
+
+pub fnc visit_check_in_method(): string {
+    return "POST";
+}
+
+pub fnc visit_check_out_path(): string {
+    return "/v1/visits/check-out";
+}
+
+pub fnc visit_check_out_method(): string {
+    return "POST";
+}
+
+pub fnc presence_submission_nonce_path(): string {
+    return "/v1/presence/submission-nonces";
+}
+
+pub fnc presence_submission_nonce_method(): string {
+    return "POST";
+}
+
+pub fnc presence_observation_path(): string {
+    return "/v1/presence/observations";
+}
+
+pub fnc presence_observation_method(): string {
+    return "POST";
+}
