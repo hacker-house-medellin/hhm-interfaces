@@ -1,0 +1,44 @@
+name: Platform envelope security
+on:
+  pull_request:
+    paths:
+      - "runtime/platform-protobuf.mjs"
+      - "tests/platform-envelope-security.test.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/platform-envelope-security.yml"
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  platform-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact PR head, tree and event validator blob
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse 'HEAD^{tree}'
+          git rev-parse HEAD:runtime/platform-protobuf.mjs
+          git rev-parse HEAD:tests/platform-envelope-security.test.mjs
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Generate independently authored contract projections
+        run: npm run generate:platform
+      - name: Execute platform boundary and protobuf tests
+        run: npm run test:platform
+      - name: Check generated platform drift
+        run: git diff --exit-code -- generated/platform
